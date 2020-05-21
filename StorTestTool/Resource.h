@@ -11,7 +11,6 @@
 #define IDC_Sector_max                  1004
 #define IDC_Loop_num                    1005
 #define IDC_Device                      1006
-#define IDC_Device2                     1007
 #define IDC_Function                    1007
 
 // Next default values for new objects

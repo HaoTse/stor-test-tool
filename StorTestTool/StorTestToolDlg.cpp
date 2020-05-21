@@ -8,6 +8,8 @@
 #include "StorTestToolDlg.h"
 #include "afxdialogex.h"
 
+#include "utils.h"
+
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #endif
@@ -26,11 +28,15 @@ CStorTestToolDlg::CStorTestToolDlg(CWnd* pParent /*=nullptr*/)
 void CStorTestToolDlg::DoDataExchange(CDataExchange* pDX)
 {
 	CDialogEx::DoDataExchange(pDX);
+	DDX_Control(pDX, IDC_Device, device_ctrl);
+	DDX_Control(pDX, IDC_Function, function_ctrl);
 }
 
 BEGIN_MESSAGE_MAP(CStorTestToolDlg, CDialogEx)
 	ON_WM_PAINT()
 	ON_WM_QUERYDRAGICON()
+//	ON_CBN_SELCHANGE(IDC_Device, &CStorTestToolDlg::OnCbnSelchangeDevice)
+	ON_CBN_DROPDOWN(IDC_Device, &CStorTestToolDlg::OnCbnDropdownDevice)
 END_MESSAGE_MAP()
 
 
@@ -46,6 +52,12 @@ BOOL CStorTestToolDlg::OnInitDialog()
 	SetIcon(m_hIcon, FALSE);		// Set small icon
 
 	// TODO: Add extra initialization here
+	// initial function dropdown list
+	int function_cnt = 8;
+	for (int i = 0; i < function_cnt; i++) {
+		function_ctrl.InsertString(i, function_map[i]);
+	}
+	SetDropDownHeight(&function_ctrl, function_cnt);
 
 	return TRUE;  // return TRUE  unless you set the focus to a control
 }
@@ -86,3 +98,28 @@ HCURSOR CStorTestToolDlg::OnQueryDragIcon()
 	return static_cast<HCURSOR>(m_hIcon);
 }
 
+
+void CStorTestToolDlg::OnCbnDropdownDevice()
+{
+	// empty options
+	device_ctrl.ResetContent();
+
+	// reset device_list
+	for (vector<Device>::iterator iter = device_list.begin(); iter != device_list.end(); ) {
+		iter = device_list.erase(iter);
+	}
+	vector<Device>().swap(device_list);
+
+	// set device combo box
+	int usb_cnt = enumUsbDisk(device_list, 8);
+	if (usb_cnt == -1) {
+		MessageBox(_T("Enumerate usb disk failed."), _T("Error"), MB_ICONERROR);
+	}
+	else {
+		for (int i = 0; i < usb_cnt; i++) {
+			Device cur_device = device_list.at(i);
+			device_ctrl.InsertString(i, cur_device.showText());
+		}
+	}
+	SetDropDownHeight(&device_ctrl, usb_cnt);
+}
