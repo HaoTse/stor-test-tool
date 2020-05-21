@@ -23,12 +23,16 @@ char Device::getIdent() {
 	return this->ident;
 }
 
-DWORD Device::getCapacity() {
+DWORD Device::getCapacitySec() {
 	return this->capacity_sec;
 }
 
 DWORD Device::getMaxTransfLen() {
 	return this->max_transf_len;
+}
+
+DWORD Device::getMaxTransfSec() {
+	return this->max_transf_len >> PHYSICAL_SECTOR_SIZE_POW2;
 }
 
 BOOL Device::isValid()

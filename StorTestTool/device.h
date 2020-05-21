@@ -2,6 +2,7 @@
 
 // The physical sector size in bytes
 #define PHYSICAL_SECTOR_SIZE 512
+#define PHYSICAL_SECTOR_SIZE_POW2 9
 
 class Device
 {
@@ -16,8 +17,9 @@ public:
 	Device(char ident);
 	HANDLE openDevice();
 	char getIdent();
-	DWORD getCapacity();
+	DWORD getCapacitySec();
 	DWORD getMaxTransfLen();
+	DWORD getMaxTransfSec();
 	BOOL isValid();
 	CString showText();
 };

@@ -5,8 +5,8 @@
 #define IDD_STORTESTTOOL_DIALOG         102
 #define IDR_MAINFRAME                   128
 #define ID_RUN                          1000
-#define IDC_LAB_Start                   1001
-#define IDC_LAB_End                     1002
+#define IDC_LBA_start                   1001
+#define IDC_LBA_end                     1002
 #define IDC_Sector_min                  1003
 #define IDC_Sector_max                  1004
 #define IDC_Loop_num                    1005

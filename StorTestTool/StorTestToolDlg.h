@@ -36,7 +36,7 @@ protected:
 	afx_msg HCURSOR OnQueryDragIcon();
 	DECLARE_MESSAGE_MAP()
 public:
-//	afx_msg void OnCbnSelchangeDevice();
+	afx_msg void OnBnClickedRun();
 	afx_msg void OnCbnDropdownDevice();
 private:
 	CString function_map[8] = { _T("Sequential (W/R+R)"), _T("Sequential (W+R)"),
@@ -46,4 +46,10 @@ public:
 	vector<Device> device_list;
 	CComboBox device_ctrl;
 	CComboBox function_ctrl;
+	CEdit LBA_end_ctrl;
+	CEdit LBA_start_ctrl;
+	CEdit loop_num_ctrl;
+	CEdit sector_max_ctrl;
+	CEdit sector_min_ctrl;
+	afx_msg void OnCbnSelchangeFunction();
 };

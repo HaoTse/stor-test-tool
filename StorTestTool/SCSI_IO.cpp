@@ -114,14 +114,14 @@ BOOL SCSIBuild10CDB(PSCSI_PASS_THROUGH_DIRECT srb, ULONGLONG offset, ULONG lengt
 		cdb[0] = SCSIOP_WRITE;				// WRITE (10) opcode
 		cdb[1] = 0;
 	}
-	DWORD LBA = (DWORD)(offset / PHYSICAL_SECTOR_SIZE);
+	DWORD LBA = (DWORD)(offset >> PHYSICAL_SECTOR_SIZE_POW2);
 	cdb[2] = ((LPBYTE)&LBA)[3];		
 	cdb[3] = ((LPBYTE)&LBA)[2];
 	cdb[4] = ((LPBYTE)&LBA)[1];
 	cdb[5] = ((LPBYTE)&LBA)[0];		
 	cdb[6] = 0x00;
 
-	WORD CDBTLen = (WORD)(length / PHYSICAL_SECTOR_SIZE);		
+	WORD CDBTLen = (WORD)(length >> PHYSICAL_SECTOR_SIZE_POW2);
 	cdb[7] = ((LPBYTE)&CDBTLen)[1];	
 	cdb[8] = ((LPBYTE)&CDBTLen)[0];
 	cdb[9] = 0x00;
