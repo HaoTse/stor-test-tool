@@ -188,6 +188,7 @@
     <ClInclude Include="pch.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="SCSI_IO.h" />
+    <ClInclude Include="StorTest.h" />
     <ClInclude Include="StorTestTool.h" />
     <ClInclude Include="StorTestToolDlg.h" />
     <ClInclude Include="targetver.h" />
@@ -202,6 +203,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="SCSI_IO.cpp" />
+    <ClCompile Include="StorTest.cpp" />
     <ClCompile Include="StorTestTool.cpp" />
     <ClCompile Include="StorTestToolDlg.cpp" />
     <ClCompile Include="utils.cpp" />

@@ -9,6 +9,7 @@
 #include "afxdialogex.h"
 
 #include "utils.h"
+#include "StorTest.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -132,10 +133,26 @@ void CStorTestToolDlg::OnCbnDropdownDevice()
 }
 
 
+void CStorTestToolDlg::OnCbnSelchangeFunction()
+{
+	DWORD function_idx;
+	// get selected function
+	function_idx = function_ctrl.GetCurSel();
+	if (function_idx == 5) {
+		loop_num_ctrl.SetWindowText(_T(""));
+		loop_num_ctrl.EnableWindow(FALSE);
+	}
+	else {
+		loop_num_ctrl.EnableWindow(TRUE);
+	}
+}
+
+
 void CStorTestToolDlg::OnBnClickedRun()
 {
-	DWORD LBA_start, LBA_end, wr_sector_min, wr_sector_max, loop_num;
+	DWORD LBA_start, LBA_end, wr_sector_min, wr_sector_max;
 	DWORD device_idx, function_idx;
+	WORD loop_num;
 	Device selected_device;
 
 	// get selected device
@@ -184,6 +201,10 @@ void CStorTestToolDlg::OnBnClickedRun()
 		MessageBox(_T("Must set loop number."), _T("Error"), MB_ICONERROR);
 		return;
 	}
+	if (_ttoi(tmp) >= (1 << 16)) {
+		MessageBox(_T("The size of loop number is only 2Bytes."), _T("Error"), MB_ICONERROR);
+		return;
+	}
 	loop_num = _ttoi(tmp);
 
 	TRACE(_T("\n[Msg] Device selected: %c:\n"
@@ -196,6 +217,10 @@ void CStorTestToolDlg::OnBnClickedRun()
 	// check value
 	if (LBA_start > LBA_end) {
 		MessageBox(_T("The start LBA cannot larger than the end LBA."), _T("Error"), MB_ICONERROR);
+		return;
+	}
+	if (wr_sector_min == 0 || wr_sector_max == 0) {
+		MessageBox(_T("Write/Read sector number must be positive."), _T("Error"), MB_ICONERROR);
 		return;
 	}
 	if (wr_sector_min > wr_sector_max) {
@@ -212,20 +237,18 @@ void CStorTestToolDlg::OnBnClickedRun()
 		MessageBox(tmp, _T("Error"), MB_ICONERROR);
 		return;
 	}
+	if (wr_sector_min > (LBA_end - LBA_start + 1)) {
+		MessageBox(_T("The minimum of Write/Read sector is larger than the LBA range."), _T("Error"), MB_ICONERROR);
+		return;
+	}
 
-}
-
-
-void CStorTestToolDlg::OnCbnSelchangeFunction()
-{
-	DWORD function_idx;
-	// get selected function
-	function_idx = function_ctrl.GetCurSel();
-	if (function_idx == 5) {
-		loop_num_ctrl.SetWindowText(_T(""));
-		loop_num_ctrl.EnableWindow(FALSE);
+	StorTest stortest(selected_device, function_idx, LBA_start, LBA_end, wr_sector_min, wr_sector_max, loop_num);
+	if (stortest.run()) {
+		MessageBox(_T("Test finished."), _T("Information"), MB_ICONINFORMATION);
+		return;
 	}
 	else {
-		loop_num_ctrl.EnableWindow(TRUE);
+		MessageBox(_T("Test failed."), _T("Error"), MB_ICONERROR);
+		return;
 	}
 }
