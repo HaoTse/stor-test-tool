@@ -79,7 +79,7 @@ BOOL StorTest::fun_onewrite()
 	if (hDevice == INVALID_HANDLE_VALUE) {
 		TRACE(_T("\n[Error] Open device failed. Error Code = %u.\n"), GetLastError());
 		CloseHandle(hDevice);
-		return FALSE;
+		throw std::runtime_error("Open device failed.");
 	}
 
 	srand(time(NULL));
@@ -103,12 +103,15 @@ BOOL StorTest::fun_onewrite()
 			TRACE(_T("\n[Error] Write LBA failed. Error Code = %u.\n"), GetLastError());
 			delete[] wr_data;
 			CloseHandle(hDevice);
-			return FALSE;
+			throw std::runtime_error("Write LBA failed.");
 		}
 
 		cur_LBA += wr_sec_num;
+		cur_LBA_cnt += wr_sec_num;
+		
 		delete[] wr_data;
 	}
+	cur_loop_cnt += 1;
 
 	CloseHandle(hDevice);
 
@@ -146,6 +149,16 @@ BOOL StorTest::run()
 	case 7:
 		return fun_varyzone();
 	default:
-		return FALSE;
+		throw std::runtime_error("Function setup error.");
 	}
+}
+
+UINT StorTest::get_cur_LBA_cnt()
+{
+	return cur_LBA_cnt;
+}
+
+UINT StorTest::get_cur_loop()
+{
+	return cur_loop_cnt;
 }

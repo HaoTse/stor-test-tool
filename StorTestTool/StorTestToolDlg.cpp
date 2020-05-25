@@ -39,6 +39,13 @@ void CStorTestToolDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_Loop_num, loop_num_ctrl);
 	DDX_Control(pDX, IDC_Sector_max, sector_max_ctrl);
 	DDX_Control(pDX, IDC_Sector_min, sector_min_ctrl);
+	DDX_Control(pDX, IDC_Log_edit, Log_edit_ctrl);
+	DDX_Control(pDX, IDC_PROGRESS_cur_loop, cur_loop_ctrl);
+	DDX_Control(pDX, IDC_PROGRESS_tot_loop, tot_loop_ctrl);
+	DDX_Control(pDX, IDC_cur_loop_edit_1, cur_loop_edit1_ctrl);
+	DDX_Control(pDX, IDC_cur_loop_edit_2, cur_loop_edit2_ctrl);
+	DDX_Control(pDX, IDC_tot_loop_edit_1, tot_loop_edit1_ctrl);
+	DDX_Control(pDX, IDC_tot_loop_edit_2, tot_loop_edit2_ctrl);
 }
 
 BEGIN_MESSAGE_MAP(CStorTestToolDlg, CDialogEx)
@@ -245,8 +252,39 @@ void CStorTestToolDlg::OnBnClickedRun()
 		return;
 	}
 
+	DWORD cur_LBA_cnt, cur_loop_cnt, tot_LBA_cnt, tot_loop_cnt;
+	DWORD progress_scale = 16; // use to scale the LBA cnt
+	tot_LBA_cnt = LBA_end - LBA_start + 1;
+	tot_loop_cnt = (function_idx == 5) ? 1 : loop_num;
+	for (int i = 0; i <= 4; i++) {
+		if ((tot_LBA_cnt >> (i * 4)) < (1 << 16)) {
+			progress_scale = i * 4;
+			break;
+		}
+	}
+	// set progress bar static text
+	CString str;
+	str.Format(_T("%u"), tot_LBA_cnt);
+	cur_loop_edit2_ctrl.SetWindowText(str);
+	str.Format(_T("%u"), tot_loop_cnt);
+	tot_loop_edit2_ctrl.SetWindowText(str);
+	cur_loop_ctrl.SetRange(0, (short)(tot_LBA_cnt >> progress_scale));
+	tot_loop_ctrl.SetRange(0, (short)(tot_loop_cnt));
+
 	StorTest stortest(selected_device, function_idx, LBA_start, LBA_end, wr_sector_min, wr_sector_max, loop_num);
 	future<BOOL> stor_rtn = async(launch::async, &StorTest::run, &stortest);
+
+	// set progress bar
+	do {
+		cur_LBA_cnt = stortest.get_cur_LBA_cnt();
+		cur_loop_cnt = stortest.get_cur_loop();
+		str.Format(_T("%u"), cur_LBA_cnt);
+		cur_loop_edit1_ctrl.SetWindowText(str);
+		cur_loop_ctrl.SetPos(cur_LBA_cnt >> progress_scale);
+		str.Format(_T("%u"), cur_loop_cnt);
+		tot_loop_edit1_ctrl.SetWindowText(str);
+		tot_loop_ctrl.SetPos(cur_loop_cnt);
+	} while (cur_loop_cnt < tot_loop_cnt);
 
 	if (stor_rtn.get()) {
 		MessageBox(_T("Test finished."), _T("Information"), MB_ICONINFORMATION);

@@ -52,4 +52,11 @@ public:
 	CEdit sector_max_ctrl;
 	CEdit sector_min_ctrl;
 	afx_msg void OnCbnSelchangeFunction();
+	CRichEditCtrl Log_edit_ctrl;
+	CProgressCtrl cur_loop_ctrl;
+	CProgressCtrl tot_loop_ctrl;
+	CStatic cur_loop_edit1_ctrl;
+	CStatic cur_loop_edit2_ctrl;
+	CStatic tot_loop_edit1_ctrl;
+	CStatic tot_loop_edit2_ctrl;
 };
