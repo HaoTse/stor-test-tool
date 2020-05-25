@@ -8,6 +8,9 @@
 #include "StorTestToolDlg.h"
 #include "afxdialogex.h"
 
+#include <future>
+#include <thread>
+
 #include "utils.h"
 #include "StorTest.h"
 
@@ -243,7 +246,9 @@ void CStorTestToolDlg::OnBnClickedRun()
 	}
 
 	StorTest stortest(selected_device, function_idx, LBA_start, LBA_end, wr_sector_min, wr_sector_max, loop_num);
-	if (stortest.run()) {
+	future<BOOL> stor_rtn = async(launch::async, &StorTest::run, &stortest);
+
+	if (stor_rtn.get()) {
 		MessageBox(_T("Test finished."), _T("Information"), MB_ICONINFORMATION);
 		return;
 	}
