@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "device.h"
+#include "StorTest.h"
 
 using namespace std;
 
@@ -38,10 +39,16 @@ protected:
 public:
 	afx_msg void OnBnClickedRun();
 	afx_msg void OnCbnDropdownDevice();
+	afx_msg void OnCbnSelchangeFunction();
 private:
+	StorTest* stortest;
+	DWORD tot_LBA_num{ 0 }, tot_loop_num{ 0 };
 	CString function_map[8] = { _T("Sequential (W/R+R)"), _T("Sequential (W+R)"),
 								_T("Reverse (W/R+R)"), _T("Reverse (W+R)"),
 								_T("Testmode "), _T("onewrite "), _T("Verify "), _T("Varyzone"), };
+	
+	static UINT update_progress_thread(LPVOID lpParam);
+	void update_progress();
 public:
 	vector<Device> device_list;
 	CComboBox device_ctrl;
@@ -51,7 +58,6 @@ public:
 	CEdit loop_num_ctrl;
 	CEdit sector_max_ctrl;
 	CEdit sector_min_ctrl;
-	afx_msg void OnCbnSelchangeFunction();
 	CRichEditCtrl Log_edit_ctrl;
 	CProgressCtrl cur_loop_ctrl;
 	CProgressCtrl tot_loop_ctrl;

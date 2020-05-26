@@ -12,7 +12,6 @@
 #include <thread>
 
 #include "utils.h"
-#include "StorTest.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -51,7 +50,6 @@ void CStorTestToolDlg::DoDataExchange(CDataExchange* pDX)
 BEGIN_MESSAGE_MAP(CStorTestToolDlg, CDialogEx)
 	ON_WM_PAINT()
 	ON_WM_QUERYDRAGICON()
-//	ON_CBN_SELCHANGE(IDC_Device, &CStorTestToolDlg::OnCbnSelchangeDevice)
 	ON_CBN_DROPDOWN(IDC_Device, &CStorTestToolDlg::OnCbnDropdownDevice)
 	ON_BN_CLICKED(ID_RUN, &CStorTestToolDlg::OnBnClickedRun)
 	ON_CBN_SELCHANGE(IDC_Function, &CStorTestToolDlg::OnCbnSelchangeFunction)
@@ -252,10 +250,45 @@ void CStorTestToolDlg::OnBnClickedRun()
 		return;
 	}
 
-	DWORD cur_LBA_cnt, cur_loop_cnt, tot_LBA_cnt, tot_loop_cnt;
+	tot_LBA_num = LBA_end - LBA_start + 1;
+	tot_loop_num = (function_idx == 5) ? 1 : loop_num;
+	stortest = new StorTest(selected_device, function_idx, LBA_start, LBA_end, wr_sector_min, wr_sector_max, loop_num);
+
+	// stortest thread
+	future<BOOL> stor_rtn = async(launch::async, &StorTest::run, stortest);
+	// progress updating thread
+	CWinThread* progress_update_thread = AfxBeginThread(
+		CStorTestToolDlg::update_progress_thread,
+		(LPVOID) this,
+		THREAD_PRIORITY_NORMAL,
+		0,
+		0,
+		NULL);
+
+	if (stor_rtn.get()) {
+		MessageBox(_T("Test finished."), _T("Information"), MB_ICONINFORMATION);
+	}
+	else {
+		MessageBox(_T("Test failed."), _T("Error"), MB_ICONERROR);
+	}
+
+	delete stortest;
+}
+
+UINT CStorTestToolDlg::update_progress_thread(LPVOID lpParam)
+{
+	CStorTestToolDlg* dlg = (CStorTestToolDlg*)lpParam;
+	dlg->update_progress();
+	return 0;
+}
+
+void CStorTestToolDlg::update_progress()
+{
+	DWORD tot_LBA_cnt, tot_loop_cnt, cur_LBA_cnt, cur_loop_cnt;
 	DWORD progress_scale = 16; // use to scale the LBA cnt
-	tot_LBA_cnt = LBA_end - LBA_start + 1;
-	tot_loop_cnt = (function_idx == 5) ? 1 : loop_num;
+
+	tot_LBA_cnt = tot_LBA_num;
+	tot_loop_cnt = tot_loop_num;
 	for (int i = 0; i <= 4; i++) {
 		if ((tot_LBA_cnt >> (i * 4)) < (1 << 16)) {
 			progress_scale = i * 4;
@@ -271,13 +304,10 @@ void CStorTestToolDlg::OnBnClickedRun()
 	cur_loop_ctrl.SetRange(0, (short)(tot_LBA_cnt >> progress_scale));
 	tot_loop_ctrl.SetRange(0, (short)(tot_loop_cnt));
 
-	StorTest stortest(selected_device, function_idx, LBA_start, LBA_end, wr_sector_min, wr_sector_max, loop_num);
-	future<BOOL> stor_rtn = async(launch::async, &StorTest::run, &stortest);
-
 	// set progress bar
 	do {
-		cur_LBA_cnt = stortest.get_cur_LBA_cnt();
-		cur_loop_cnt = stortest.get_cur_loop();
+		cur_LBA_cnt = stortest->get_cur_LBA_cnt();
+		cur_loop_cnt = stortest->get_cur_loop();
 		str.Format(_T("%u"), cur_LBA_cnt);
 		cur_loop_edit1_ctrl.SetWindowText(str);
 		cur_loop_ctrl.SetPos(cur_LBA_cnt >> progress_scale);
@@ -285,13 +315,4 @@ void CStorTestToolDlg::OnBnClickedRun()
 		tot_loop_edit1_ctrl.SetWindowText(str);
 		tot_loop_ctrl.SetPos(cur_loop_cnt);
 	} while (cur_loop_cnt < tot_loop_cnt);
-
-	if (stor_rtn.get()) {
-		MessageBox(_T("Test finished."), _T("Information"), MB_ICONINFORMATION);
-		return;
-	}
-	else {
-		MessageBox(_T("Test failed."), _T("Error"), MB_ICONERROR);
-		return;
-	}
 }
