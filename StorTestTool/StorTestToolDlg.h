@@ -49,6 +49,7 @@ private:
 	
 	static UINT update_progress_thread(LPVOID lpParam);
 	void update_progress();
+	void set_dlg_enable(bool setup);
 public:
 	vector<Device> device_list;
 	CComboBox device_ctrl;
@@ -65,4 +66,5 @@ public:
 	CStatic cur_loop_edit2_ctrl;
 	CStatic tot_loop_edit1_ctrl;
 	CStatic tot_loop_edit2_ctrl;
+	CButton run_btn_ctrl;
 };

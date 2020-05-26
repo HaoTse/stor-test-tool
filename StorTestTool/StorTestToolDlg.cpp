@@ -48,6 +48,7 @@ void CStorTestToolDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_cur_loop_edit_2, cur_loop_edit2_ctrl);
 	DDX_Control(pDX, IDC_tot_loop_edit_1, tot_loop_edit1_ctrl);
 	DDX_Control(pDX, IDC_tot_loop_edit_2, tot_loop_edit2_ctrl);
+	DDX_Control(pDX, ID_RUN, run_btn_ctrl);
 }
 
 BEGIN_MESSAGE_MAP(CStorTestToolDlg, CDialogEx)
@@ -279,6 +280,9 @@ void CStorTestToolDlg::update_progress()
 	DWORD tot_LBA_cnt, tot_loop_cnt, cur_LBA_cnt, cur_loop_cnt;
 	DWORD progress_scale = 16; // use to scale the LBA cnt
 
+	// disable dlg
+	set_dlg_enable(FALSE);
+
 	// stortest thread
 	future<BOOL> stor_rtn = async(launch::async, &StorTest::run, stortest);
 
@@ -339,4 +343,20 @@ void CStorTestToolDlg::update_progress()
 
 	if(stortest)
 		delete stortest;
+
+	// enable dlg
+	set_dlg_enable(TRUE);
+	OnCbnSelchangeFunction(); // check if function is Onewrite
+}
+
+void CStorTestToolDlg::set_dlg_enable(bool setup)
+{
+	device_ctrl.EnableWindow(setup);
+	LBA_start_ctrl.EnableWindow(setup);
+	LBA_end_ctrl.EnableWindow(setup);
+	sector_min_ctrl.EnableWindow(setup);
+	sector_max_ctrl.EnableWindow(setup);
+	loop_num_ctrl.EnableWindow(setup);
+	function_ctrl.EnableWindow(setup);
+	run_btn_ctrl.EnableWindow(setup);
 }
