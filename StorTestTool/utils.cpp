@@ -73,3 +73,8 @@ int enumUsbDisk(vector<Device> &device_list, int cnt)
 	return usb_disk_cnt;
 }
 
+BOOL dirExists(CString path) {
+	DWORD dwAttrib = GetFileAttributes(path);
+
+	return dwAttrib != INVALID_FILE_ATTRIBUTES;
+}

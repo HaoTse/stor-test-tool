@@ -283,6 +283,13 @@ void CStorTestToolDlg::OnBnClickedRun()
 	tot_loop_num = (function_idx == 5) ? 1 : loop_num;
 	stortest = new StorTest(selected_device, function_idx, LBA_start, LBA_end, wr_sector_min, wr_sector_max, loop_num);
 
+	// check log directory
+	if (!stortest->open_log_dir()) {
+		MessageBox(_T("Log directory exists. Please delete it."), _T("Error"), MB_ICONERROR);
+		delete stortest;
+		return;
+	}
+
 	// progress updating thread
 	CWinThread* progress_update_thread = AfxBeginThread(
 		CStorTestToolDlg::update_progress_thread,
@@ -335,6 +342,7 @@ void CStorTestToolDlg::update_progress()
 	tot_loop_ctrl.SetRange(0, (short)(tot_loop_cnt));
 
 	// set progress bar
+	cur_loop_cnt = 0;
 	do {
 		// check stortest condition
 		if (stortest->get_pause()) {
@@ -379,6 +387,7 @@ void CStorTestToolDlg::update_progress()
 		MessageBox((LPCTSTR)msg.c_str(), _T("Error"), MB_ICONERROR);
 	}
 
+	stortest->close_log_files();
 	if(stortest)
 		delete stortest;
 

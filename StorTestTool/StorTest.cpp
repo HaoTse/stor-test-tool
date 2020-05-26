@@ -6,6 +6,7 @@
 #include <iostream>
 
 #include "SCSI_IO.h"
+#include "utils.h"
 
 StorTest::StorTest(Device dev, DWORD fun_idx, DWORD start, DWORD end, DWORD smin, DWORD smax, WORD loopn) :
 	selected_device(dev), function_idx(fun_idx), LBA_start(start), LBA_end(end),
@@ -51,6 +52,20 @@ void StorTest::set_log_msg(CString msg)
 	log_msg_mutex.lock();
 	log_msg += msg;
 	log_msg_mutex.unlock();
+}
+
+void StorTest::set_cmd_msg(CString msg)
+{
+	cmd_msg_mutex.lock();
+	cmd_msg += msg;
+	cmd_msg_mutex.unlock();
+}
+
+void StorTest::set_error_msg(CString msg)
+{
+	error_msg_mutex.lock();
+	error_msg += msg;
+	error_msg_mutex.unlock();
 }
 
 BOOL StorTest::fun_sequential_ac()
@@ -122,7 +137,7 @@ BOOL StorTest::fun_onewrite()
 		}
 
 		msg.Format(_T("\tWrite LBA: %u ~ %u (size = %u)\n"), cur_LBA, cur_LBA + wr_sec_num - 1, wr_sec_num);
-		set_log_msg(msg);
+		set_cmd_msg(msg);
 
 		cur_LBA += wr_sec_num;
 		cur_LBA_cnt += wr_sec_num;
@@ -179,6 +194,58 @@ BOOL StorTest::run()
 	}
 }
 
+BOOL StorTest::open_log_dir()
+{
+	CString dir_path;
+	
+	dir_path.Format(_T("D:\\stortest_log\\fun_%u_LBA_%u_%u_wr_%u_%u_loop_%u"), function_idx, LBA_start, LBA_end, wr_sector_min, wr_sector_max, loop_num);
+
+	if (dirExists(dir_path)) {
+		TRACE(_T("\n[Error] Log directory exists.\n"));
+		return FALSE;
+	}
+	CreateDirectory(dir_path, NULL);
+	set_log_msg(CString(_T("Log directory: ")) + dir_path + CString(_T("\n")));
+
+	// open command log file and error log file
+	wchar_t* path_tmp = cstr2strW(dir_path + CString(_T("\\command.txt")));
+	cmd_file_hand = CreateFile(
+		path_tmp,
+		GENERIC_WRITE,
+		FILE_SHARE_READ,
+		NULL,
+		CREATE_NEW,
+		FILE_ATTRIBUTE_NORMAL,
+		NULL);
+	delete[] path_tmp;
+
+	path_tmp = cstr2strW(dir_path + CString(_T("\\error.txt")));
+	error_file_hand = CreateFile(
+		path_tmp,
+		GENERIC_WRITE,
+		FILE_SHARE_READ,
+		NULL,
+		CREATE_NEW,
+		FILE_ATTRIBUTE_NORMAL,
+		NULL);
+	delete[] path_tmp;
+
+	unsigned char Header[2]; // unicode text file header
+	DWORD bytesWritten;
+	Header[0] = 0xFF;
+	Header[1] = 0xFE;
+	WriteFile(cmd_file_hand, Header, 2, &bytesWritten, NULL);
+	WriteFile(error_file_hand, Header, 2, &bytesWritten, NULL);
+	
+	return TRUE;
+}
+
+void StorTest::close_log_files()
+{
+	CloseHandle(cmd_file_hand);
+	CloseHandle(error_file_hand);
+}
+
 UINT StorTest::get_cur_LBA_cnt()
 {
 	return cur_LBA_cnt;
@@ -196,6 +263,32 @@ CString StorTest::get_log_msg()
 	rtn = log_msg;
 	log_msg.Empty();
 	log_msg_mutex.unlock();
+
+	// write log
+	DWORD bytesWritten;
+	if (!cmd_msg.IsEmpty()) {
+		cmd_msg_mutex.lock();
+		WriteFile(
+			cmd_file_hand,
+			cmd_msg,
+			cmd_msg.GetLength() * 2,
+			&bytesWritten,
+			nullptr);
+		cmd_msg.Empty();
+		cmd_msg_mutex.unlock();
+	}
+	if (!error_msg.IsEmpty()) {
+		error_msg_mutex.lock();
+		WriteFile(
+			error_file_hand,
+			error_msg,
+			error_msg.GetLength() * 2,
+			&bytesWritten,
+			nullptr);
+		error_msg.Empty();
+		error_msg_mutex.unlock();
+	}
+
 	return rtn;
 }
 
