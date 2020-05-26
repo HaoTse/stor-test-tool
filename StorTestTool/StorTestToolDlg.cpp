@@ -26,6 +26,9 @@ CStorTestToolDlg::CStorTestToolDlg(CWnd* pParent /*=nullptr*/)
 	: CDialogEx(IDD_STORTESTTOOL_DIALOG, pParent)
 {
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
+
+	// initial stortest
+	stortest = NULL;
 }
 
 void CStorTestToolDlg::DoDataExchange(CDataExchange* pDX)
@@ -254,8 +257,6 @@ void CStorTestToolDlg::OnBnClickedRun()
 	tot_loop_num = (function_idx == 5) ? 1 : loop_num;
 	stortest = new StorTest(selected_device, function_idx, LBA_start, LBA_end, wr_sector_min, wr_sector_max, loop_num);
 
-	// stortest thread
-	future<BOOL> stor_rtn = async(launch::async, &StorTest::run, stortest);
 	// progress updating thread
 	CWinThread* progress_update_thread = AfxBeginThread(
 		CStorTestToolDlg::update_progress_thread,
@@ -264,23 +265,6 @@ void CStorTestToolDlg::OnBnClickedRun()
 		0,
 		0,
 		NULL);
-	
-	try
-	{
-		if (stor_rtn.get()) {
-			MessageBox(_T("Test finished."), _T("Information"), MB_ICONINFORMATION);
-		}
-		else {
-			MessageBox(_T("Test failed."), _T("Error"), MB_ICONERROR);
-		}
-	}
-	catch (const std::exception& exp)
-	{
-		string msg = exp.what();
-		MessageBox((LPCTSTR)msg.c_str(), _T("Error"), MB_ICONERROR);
-	}
-
-	delete stortest;
 }
 
 UINT CStorTestToolDlg::update_progress_thread(LPVOID lpParam)
@@ -294,6 +278,13 @@ void CStorTestToolDlg::update_progress()
 {
 	DWORD tot_LBA_cnt, tot_loop_cnt, cur_LBA_cnt, cur_loop_cnt;
 	DWORD progress_scale = 16; // use to scale the LBA cnt
+
+	// stortest thread
+	future<BOOL> stor_rtn = async(launch::async, &StorTest::run, stortest);
+
+	// initial progress bar pos
+	cur_loop_ctrl.SetPos(0);
+	tot_loop_ctrl.SetPos(0);
 
 	tot_LBA_cnt = tot_LBA_num;
 	tot_loop_cnt = tot_loop_num;
@@ -322,5 +313,30 @@ void CStorTestToolDlg::update_progress()
 		str.Format(_T("%u"), cur_loop_cnt);
 		tot_loop_edit1_ctrl.SetWindowText(str);
 		tot_loop_ctrl.SetPos(cur_loop_cnt);
+
+		// update log edit
+		str = stortest->get_log_msg();
+		Log_edit_ctrl.SetSel(-1, -1);
+		Log_edit_ctrl.ReplaceSel(str);
+		Log_edit_ctrl.PostMessage(WM_VSCROLL, SB_BOTTOM, 0); // scroll location
 	} while (cur_loop_cnt < tot_loop_cnt);
+
+	// get stortest thread result
+	try
+	{
+		if (stor_rtn.get()) {
+			MessageBox(_T("Test finished."), _T("Information"), MB_ICONINFORMATION);
+		}
+		else {
+			MessageBox(_T("Test failed."), _T("Error"), MB_ICONERROR);
+		}
+	}
+	catch (const std::exception& exp)
+	{
+		string msg = exp.what();
+		MessageBox((LPCTSTR)msg.c_str(), _T("Error"), MB_ICONERROR);
+	}
+
+	if(stortest)
+		delete stortest;
 }

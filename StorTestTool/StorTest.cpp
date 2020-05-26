@@ -46,6 +46,13 @@ void StorTest::get_LBA_pattern(BYTE* LBA_pattern, DWORD buf_offset, DWORD LBA, W
 	}
 }
 
+void StorTest::set_log_msg(CString msg)
+{
+	log_msg_mutex.lock();
+	log_msg += msg;
+	log_msg_mutex.unlock();
+}
+
 BOOL StorTest::fun_sequential_ac()
 {
 	return TRUE;
@@ -83,6 +90,7 @@ BOOL StorTest::fun_onewrite()
 	}
 
 	srand(time(NULL));
+	CString msg;
 	DWORD cur_LBA = LBA_start;
 	while (cur_LBA <= LBA_end)
 	{
@@ -105,6 +113,9 @@ BOOL StorTest::fun_onewrite()
 			CloseHandle(hDevice);
 			throw std::runtime_error("Write LBA failed.");
 		}
+
+		msg.Format(_T("\tWrite LBA: %u ~ %u (size = %u)\n"), cur_LBA, cur_LBA + wr_sec_num - 1, wr_sec_num);
+		set_log_msg(msg);
 
 		cur_LBA += wr_sec_num;
 		cur_LBA_cnt += wr_sec_num;
@@ -133,20 +144,28 @@ BOOL StorTest::run()
 	switch (function_idx)
 	{
 	case 0:
+		set_log_msg(CString(_T("Start Sequential mode a+c\n")));
 		return fun_sequential_ac();
 	case 1:
+		set_log_msg(CString(_T("Start Sequential mode b+c\n")));
 		return fun_sequential_bc();
 	case 2:
+		set_log_msg(CString(_T("Start Reverse mode a+c\n")));
 		return fun_reverse_ac();
 	case 3:
+		set_log_msg(CString(_T("Start Reverse mode b+c\n")));
 		return fun_reverse_bc();
 	case 4:
+		set_log_msg(CString(_T("Start TestMode\n")));
 		return fun_testmode();
 	case 5:
+		set_log_msg(CString(_T("Start OneWrite\n")));
 		return fun_onewrite();
 	case 6:
+		set_log_msg(CString(_T("Start Verify\n")));
 		return fun_verify();
 	case 7:
+		set_log_msg(CString(_T("Start Varyzone\n")));
 		return fun_varyzone();
 	default:
 		throw std::runtime_error("Function setup error.");
@@ -161,4 +180,14 @@ UINT StorTest::get_cur_LBA_cnt()
 UINT StorTest::get_cur_loop()
 {
 	return cur_loop_cnt;
+}
+
+CString StorTest::get_log_msg()
+{
+	CString rtn;
+	log_msg_mutex.lock();
+	rtn = log_msg;
+	log_msg.Empty();
+	log_msg_mutex.unlock();
+	return rtn;
 }

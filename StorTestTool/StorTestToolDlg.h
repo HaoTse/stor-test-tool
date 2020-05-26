@@ -45,7 +45,7 @@ private:
 	DWORD tot_LBA_num{ 0 }, tot_loop_num{ 0 };
 	CString function_map[8] = { _T("Sequential (W/R+R)"), _T("Sequential (W+R)"),
 								_T("Reverse (W/R+R)"), _T("Reverse (W+R)"),
-								_T("Testmode "), _T("onewrite "), _T("Verify "), _T("Varyzone"), };
+								_T("Testmode "), _T("Onewrite "), _T("Verify "), _T("Varyzone"), };
 	
 	static UINT update_progress_thread(LPVOID lpParam);
 	void update_progress();
