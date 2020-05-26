@@ -49,6 +49,8 @@ void CStorTestToolDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_tot_loop_edit_1, tot_loop_edit1_ctrl);
 	DDX_Control(pDX, IDC_tot_loop_edit_2, tot_loop_edit2_ctrl);
 	DDX_Control(pDX, ID_RUN, run_btn_ctrl);
+	DDX_Control(pDX, IDC_pause_btn, pause_btn_ctrl);
+	DDX_Control(pDX, IDC_stop_btn, stop_btn_ctrl);
 }
 
 BEGIN_MESSAGE_MAP(CStorTestToolDlg, CDialogEx)
@@ -57,6 +59,8 @@ BEGIN_MESSAGE_MAP(CStorTestToolDlg, CDialogEx)
 	ON_CBN_DROPDOWN(IDC_Device, &CStorTestToolDlg::OnCbnDropdownDevice)
 	ON_BN_CLICKED(ID_RUN, &CStorTestToolDlg::OnBnClickedRun)
 	ON_CBN_SELCHANGE(IDC_Function, &CStorTestToolDlg::OnCbnSelchangeFunction)
+	ON_BN_CLICKED(IDC_pause_btn, &CStorTestToolDlg::OnBnClickedpausebtn)
+	ON_BN_CLICKED(IDC_stop_btn, &CStorTestToolDlg::OnBnClickedstopbtn)
 END_MESSAGE_MAP()
 
 
@@ -157,6 +161,27 @@ void CStorTestToolDlg::OnCbnSelchangeFunction()
 	else {
 		loop_num_ctrl.EnableWindow(TRUE);
 	}
+}
+
+
+void CStorTestToolDlg::OnBnClickedpausebtn()
+{
+	if (stortest->get_pause()) {
+		stortest->set_pause(FALSE);
+		pause_btn_ctrl.SetWindowText(_T("Pause"));
+	}
+	else {
+		stortest->set_pause(TRUE);
+		pause_btn_ctrl.SetWindowText(_T("Resume"));
+	}
+}
+
+
+void CStorTestToolDlg::OnBnClickedstopbtn()
+{
+	stop_btn_ctrl.EnableWindow(FALSE);
+	pause_btn_ctrl.EnableWindow(FALSE);
+	stortest->set_terminate();
 }
 
 
@@ -268,12 +293,14 @@ void CStorTestToolDlg::OnBnClickedRun()
 		NULL);
 }
 
+
 UINT CStorTestToolDlg::update_progress_thread(LPVOID lpParam)
 {
 	CStorTestToolDlg* dlg = (CStorTestToolDlg*)lpParam;
 	dlg->update_progress();
 	return 0;
 }
+
 
 void CStorTestToolDlg::update_progress()
 {
@@ -309,6 +336,14 @@ void CStorTestToolDlg::update_progress()
 
 	// set progress bar
 	do {
+		// check stortest condition
+		if (stortest->get_pause()) {
+			continue;
+		}
+		if (stortest->get_terminate()) {
+			break;
+		}
+
 		cur_LBA_cnt = stortest->get_cur_LBA_cnt();
 		cur_loop_cnt = stortest->get_cur_loop();
 		str.Format(_T("%u"), cur_LBA_cnt);
@@ -329,7 +364,10 @@ void CStorTestToolDlg::update_progress()
 	try
 	{
 		if (stor_rtn.get()) {
-			MessageBox(_T("Test finished."), _T("Information"), MB_ICONINFORMATION);
+			if(stortest->get_terminate())
+				MessageBox(_T("Test terminated."), _T("Information"), MB_ICONINFORMATION);
+			else
+				MessageBox(_T("Test finished."), _T("Information"), MB_ICONINFORMATION);
 		}
 		else {
 			MessageBox(_T("Test failed."), _T("Error"), MB_ICONERROR);
@@ -349,6 +387,7 @@ void CStorTestToolDlg::update_progress()
 	OnCbnSelchangeFunction(); // check if function is Onewrite
 }
 
+
 void CStorTestToolDlg::set_dlg_enable(bool setup)
 {
 	device_ctrl.EnableWindow(setup);
@@ -359,4 +398,7 @@ void CStorTestToolDlg::set_dlg_enable(bool setup)
 	loop_num_ctrl.EnableWindow(setup);
 	function_ctrl.EnableWindow(setup);
 	run_btn_ctrl.EnableWindow(setup);
+
+	stop_btn_ctrl.EnableWindow(!setup);
+	pause_btn_ctrl.EnableWindow(!setup);
 }

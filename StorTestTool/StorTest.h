@@ -14,6 +14,7 @@ private:
 	std::atomic_uint cur_LBA_cnt{ 0 }, cur_loop_cnt{ 0 };
 	std::mutex log_msg_mutex;
 	CString log_msg{ CString(_T("")) };
+	std::atomic_bool if_terminate{ FALSE }, if_pause{ FALSE };
 	
 	void dec_in_hex(BYTE* hex_byte, DWORD num);
 	void get_LBA_pattern(BYTE* LBA_pattern, DWORD buf_offset, DWORD LBA, WORD loop);
@@ -34,4 +35,8 @@ public:
 	UINT get_cur_LBA_cnt();
 	UINT get_cur_loop();
 	CString get_log_msg();
+	void set_terminate();
+	BOOL get_terminate();
+	void set_pause(bool setup);
+	BOOL get_pause();
 };

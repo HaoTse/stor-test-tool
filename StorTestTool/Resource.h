@@ -19,7 +19,8 @@
 #define IDC_cur_loop_edit_2             1012
 #define IDC_tot_loop_edit_1             1013
 #define IDC_tot_loop_edit_2             1014
-#define IDC_LIST1                       1015
+#define IDC_pause_btn                   1016
+#define IDC_stop_btn                    1017
 
 // Next default values for new objects
 // 
@@ -27,7 +28,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        130
 #define _APS_NEXT_COMMAND_VALUE         32771
-#define _APS_NEXT_CONTROL_VALUE         1016
+#define _APS_NEXT_CONTROL_VALUE         1018
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

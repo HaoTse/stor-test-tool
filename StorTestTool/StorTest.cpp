@@ -94,6 +94,13 @@ BOOL StorTest::fun_onewrite()
 	DWORD cur_LBA = LBA_start;
 	while (cur_LBA <= LBA_end)
 	{
+		if (if_pause) {
+			continue;
+		}
+		if (if_terminate) {
+			break;
+		}
+
 		DWORD wr_sec_num = rand() % (wr_sector_max - wr_sector_min + 1) + wr_sector_min;
 		// check remain LBA
 		wr_sec_num = (wr_sec_num < (LBA_end - cur_LBA + 1)) ? wr_sec_num : (LBA_end - cur_LBA + 1);
@@ -190,4 +197,25 @@ CString StorTest::get_log_msg()
 	log_msg.Empty();
 	log_msg_mutex.unlock();
 	return rtn;
+}
+
+void StorTest::set_terminate()
+{
+	if_terminate = TRUE;
+	if_pause = FALSE;
+}
+
+BOOL StorTest::get_terminate()
+{
+	return if_terminate;
+}
+
+void StorTest::set_pause(bool setup)
+{
+	if_pause = setup;
+}
+
+BOOL StorTest::get_pause()
+{
+	return if_pause;
 }

@@ -40,6 +40,8 @@ public:
 	afx_msg void OnBnClickedRun();
 	afx_msg void OnCbnDropdownDevice();
 	afx_msg void OnCbnSelchangeFunction();
+	afx_msg void OnBnClickedpausebtn();
+	afx_msg void OnBnClickedstopbtn();
 private:
 	StorTest* stortest;
 	DWORD tot_LBA_num{ 0 }, tot_loop_num{ 0 };
@@ -67,4 +69,6 @@ public:
 	CStatic tot_loop_edit1_ctrl;
 	CStatic tot_loop_edit2_ctrl;
 	CButton run_btn_ctrl;
+	CButton pause_btn_ctrl;
+	CButton stop_btn_ctrl;
 };
