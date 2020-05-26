@@ -12,7 +12,3 @@ wchar_t* cstr2strW(CString str);
 void SetDropDownHeight(CComboBox* pMyComboBox, int itemsToShow);
 
 int enumUsbDisk(vector<Device>& device_list, int cnt);
-
-BOOL directoryExists(CString path);
-
-BOOL fileExists(CString path);

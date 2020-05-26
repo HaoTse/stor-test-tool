@@ -264,12 +264,20 @@ void CStorTestToolDlg::OnBnClickedRun()
 		0,
 		0,
 		NULL);
-
-	if (stor_rtn.get()) {
-		MessageBox(_T("Test finished."), _T("Information"), MB_ICONINFORMATION);
+	
+	try
+	{
+		if (stor_rtn.get()) {
+			MessageBox(_T("Test finished."), _T("Information"), MB_ICONINFORMATION);
+		}
+		else {
+			MessageBox(_T("Test failed."), _T("Error"), MB_ICONERROR);
+		}
 	}
-	else {
-		MessageBox(_T("Test failed."), _T("Error"), MB_ICONERROR);
+	catch (const std::exception& exp)
+	{
+		string msg = exp.what();
+		MessageBox((LPCTSTR)msg.c_str(), _T("Error"), MB_ICONERROR);
 	}
 
 	delete stortest;
