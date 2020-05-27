@@ -252,8 +252,8 @@ void CStorTestToolDlg::OnBnClickedRun()
 				LBA_start, LBA_end, wr_sector_min, wr_sector_max, loop_num);
 
 	// check value
-	if (LBA_start > LBA_end) {
-		MessageBox(_T("The start LBA cannot larger than the end LBA."), _T("Error"), MB_ICONERROR);
+	if (LBA_start >= LBA_end) {
+		MessageBox(_T("The start LBA must smaller than the end LBA."), _T("Error"), MB_ICONERROR);
 		return;
 	}
 	if (wr_sector_min == 0 || wr_sector_max == 0) {
@@ -274,12 +274,12 @@ void CStorTestToolDlg::OnBnClickedRun()
 		MessageBox(tmp, _T("Error"), MB_ICONERROR);
 		return;
 	}
-	if (wr_sector_min > (LBA_end - LBA_start + 1)) {
+	if (wr_sector_min > (LBA_end - LBA_start)) {
 		MessageBox(_T("The minimum of Write/Read sector is larger than the LBA range."), _T("Error"), MB_ICONERROR);
 		return;
 	}
 
-	tot_LBA_num = LBA_end - LBA_start + 1;
+	tot_LBA_num = LBA_end - LBA_start;
 	tot_loop_num = (function_idx == 5) ? 1 : loop_num;
 	stortest = new StorTest(selected_device, function_idx, LBA_start, LBA_end, wr_sector_min, wr_sector_max, loop_num);
 

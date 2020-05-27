@@ -186,14 +186,14 @@ BOOL StorTest::fun_sequential_ac()
 		set_log_msg(msg);
 		cur_LBA = LBA_start;
 		cur_LBA_cnt = 0;
-		while (cur_LBA <= LBA_end)
+		while (cur_LBA < LBA_end)
 		{
 			if (if_pause) continue;
 			if (if_terminate) break;
 
 			DWORD wr_sec_num = distribution(generator);
 			// check remain LBA
-			wr_sec_num = (wr_sec_num < (LBA_end - cur_LBA + 1)) ? wr_sec_num : (LBA_end - cur_LBA + 1);
+			wr_sec_num = (wr_sec_num < (LBA_end - cur_LBA)) ? wr_sec_num : (LBA_end - cur_LBA);
 			DWORD wr_sec_len = wr_sec_num * PHYSICAL_SECTOR_SIZE;
 			BYTE* wr_data = new BYTE[wr_sec_len];
 
@@ -269,14 +269,14 @@ BOOL StorTest::fun_sequential_ac()
 		set_log_msg(msg);
 		cur_LBA = LBA_start;
 		cur_LBA_cnt = 0;
-		while (cur_LBA <= LBA_end)
+		while (cur_LBA < LBA_end)
 		{
 			if (if_pause) continue;
 			if (if_terminate) break;
 
 			DWORD wr_sec_num = selected_device.getMaxTransfSec();
 			// check remain LBA
-			wr_sec_num = (wr_sec_num < (LBA_end - cur_LBA + 1)) ? wr_sec_num : (LBA_end - cur_LBA + 1);
+			wr_sec_num = (wr_sec_num < (LBA_end - cur_LBA)) ? wr_sec_num : (LBA_end - cur_LBA);
 			DWORD wr_sec_len = wr_sec_num * PHYSICAL_SECTOR_SIZE;
 			BYTE* wr_data = new BYTE[wr_sec_len];
 
@@ -388,7 +388,7 @@ BOOL StorTest::fun_onewrite()
 	DWORD cur_LBA = LBA_start;
 	// open command log file
 	cmd_file_hand = get_file_handle(dir_path + CString(_T("\\command.txt")));
-	while (cur_LBA <= LBA_end)
+	while (cur_LBA < LBA_end)
 	{
 		if (if_pause) {
 			continue;
@@ -399,7 +399,7 @@ BOOL StorTest::fun_onewrite()
 
 		DWORD wr_sec_num = distribution(generator);;
 		// check remain LBA
-		wr_sec_num = (wr_sec_num < (LBA_end - cur_LBA + 1)) ? wr_sec_num : (LBA_end - cur_LBA + 1);
+		wr_sec_num = (wr_sec_num < (LBA_end - cur_LBA)) ? wr_sec_num : (LBA_end - cur_LBA);
 		DWORD wr_sec_len = wr_sec_num * PHYSICAL_SECTOR_SIZE;
 		BYTE* wr_data = new BYTE[wr_sec_len];
 
