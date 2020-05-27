@@ -51,6 +51,7 @@ void CStorTestToolDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, ID_RUN, run_btn_ctrl);
 	DDX_Control(pDX, IDC_pause_btn, pause_btn_ctrl);
 	DDX_Control(pDX, IDC_stop_btn, stop_btn_ctrl);
+	DDX_Control(pDX, IDCANCEL, cancel_btn_ctrl);
 }
 
 BEGIN_MESSAGE_MAP(CStorTestToolDlg, CDialogEx)
@@ -413,6 +414,7 @@ void CStorTestToolDlg::set_dlg_enable(bool setup)
 	loop_num_ctrl.EnableWindow(setup);
 	function_ctrl.EnableWindow(setup);
 	run_btn_ctrl.EnableWindow(setup);
+	cancel_btn_ctrl.EnableWindow(setup);
 
 	stop_btn_ctrl.EnableWindow(!setup);
 	pause_btn_ctrl.EnableWindow(!setup);

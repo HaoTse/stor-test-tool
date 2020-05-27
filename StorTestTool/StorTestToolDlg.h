@@ -71,4 +71,5 @@ public:
 	CButton run_btn_ctrl;
 	CButton pause_btn_ctrl;
 	CButton stop_btn_ctrl;
+	CButton cancel_btn_ctrl;
 };
