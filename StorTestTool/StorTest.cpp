@@ -136,11 +136,8 @@ BOOL StorTest::fun_sequential_ac()
 	CString msg;
 	DWORD cur_LBA;
 	for (WORD cur_loop = 0; loop_num == 0 || cur_loop < loop_num; cur_loop++) {
-		msg.Format(_T("Loop %u\n"), cur_loop);
-		set_cmd_msg(msg);
-
 		// W/R
-		msg.Format(_T("\tStart loop %u write\n"), cur_loop);
+		msg.Format(_T("\tStart loop %5u write/read\n"), cur_loop);
 		set_log_msg(msg);
 		cur_LBA = LBA_start;
 		cur_LBA_cnt = 0;
@@ -168,7 +165,7 @@ BOOL StorTest::fun_sequential_ac()
 				CloseHandle(hDevice);
 				throw std::runtime_error("Write LBA failed.");
 			}
-			msg.Format(_T("Write LBA: %u ~ %u (size = %u)\n"), cur_LBA, cur_LBA + wr_sec_num - 1, wr_sec_num);
+			msg.Format(_T("Loop %5u Write LBA: %10u~%10u (size: %4u)\n"), cur_loop, cur_LBA, cur_LBA + wr_sec_num - 1, wr_sec_num);
 			set_cmd_msg(msg);
 
 			// read LBA
@@ -178,7 +175,7 @@ BOOL StorTest::fun_sequential_ac()
 				CloseHandle(hDevice);
 				throw std::runtime_error("Read LBA failed.");
 			}
-			msg.Format(_T("Read LBA: %u ~ %u (size = %u)\n"), cur_LBA, cur_LBA + wr_sec_num - 1, wr_sec_num);
+			msg.Format(_T("Loop %5u Read LBA:  %10u~%10u (size: %4u)\n"), cur_loop, cur_LBA, cur_LBA + wr_sec_num - 1, wr_sec_num);
 			set_cmd_msg(msg);
 
 			// compare pattern
@@ -187,7 +184,7 @@ BOOL StorTest::fun_sequential_ac()
 				get_LBA_pattern(expect_data, cur_LBA + i, cur_loop);
 
 				if (!compare_sector(expect_data, wr_data + i * PHYSICAL_SECTOR_SIZE)) {
-					msg.Format(_T("\tFound expect in loop %u and LBA %u\n"), cur_loop, cur_LBA + i);
+					msg.Format(_T("\tFound expect in loop %5u and LBA %10u\n"), cur_loop, cur_LBA + i);
 					set_log_msg(msg);
 					msg.Format(_T("Sequential W/R LBA: %u, Size: %u\n"), cur_LBA, wr_sec_num);
 					set_error_msg(msg);
@@ -208,7 +205,7 @@ BOOL StorTest::fun_sequential_ac()
 		if (if_terminate) break;
 
 		// R
-		msg.Format(_T("\tStart loop %u read\n"), cur_loop);
+		msg.Format(_T("\tStart loop %5u read\n"), cur_loop);
 		set_log_msg(msg);
 		cur_LBA = LBA_start;
 		cur_LBA_cnt = 0;
@@ -236,7 +233,7 @@ BOOL StorTest::fun_sequential_ac()
 				CloseHandle(hDevice);
 				throw std::runtime_error("Read LBA failed.");
 			}
-			msg.Format(_T("Read LBA: %u ~ %u (size = %u)\n"), cur_LBA, cur_LBA + wr_sec_num - 1, wr_sec_num);
+			msg.Format(_T("Loop %5u Read LBA:  %10u~%10u (size: %4u)\n"), cur_loop, cur_LBA, cur_LBA + wr_sec_num - 1, wr_sec_num);
 			set_cmd_msg(msg);
 
 			// compare pattern
@@ -245,11 +242,11 @@ BOOL StorTest::fun_sequential_ac()
 				get_LBA_pattern(expect_data, cur_LBA + i, cur_loop);
 
 				// Make an error pattern
-				//if (cur_LBA + i == 23 && cur_loop == 3)
-				//	*(wr_data + i * PHYSICAL_SECTOR_SIZE + 23) = 0xFF;
+				if (cur_LBA + i == 23 && cur_loop == 3)
+					*(wr_data + i * PHYSICAL_SECTOR_SIZE + 23) = 0xFF;
 
 				if (!compare_sector(expect_data, wr_data + i * PHYSICAL_SECTOR_SIZE)) {
-					msg.Format(_T("\tFound expect in loop %u and LBA %u\n"), cur_loop, cur_LBA + i);
+					msg.Format(_T("\tFound expect in loop %5u and LBA %10u\n"), cur_loop, cur_LBA + i);
 					set_log_msg(msg);
 					msg.Format(_T("Sequential R LBA: %u, Size: %u\n"), cur_LBA, wr_sec_num);
 					set_error_msg(msg);
@@ -340,7 +337,7 @@ BOOL StorTest::fun_onewrite()
 			throw std::runtime_error("Write LBA failed.");
 		}
 
-		msg.Format(_T("Write LBA: %u ~ %u (size = %u)\n"), cur_LBA, cur_LBA + wr_sec_num - 1, wr_sec_num);
+		msg.Format(_T("Write LBA: %10u~%10u (size: %4u)\n"), cur_LBA, cur_LBA + wr_sec_num - 1, wr_sec_num);
 		set_cmd_msg(msg);
 
 		cur_LBA += wr_sec_num;
@@ -401,8 +398,12 @@ BOOL StorTest::run()
 BOOL StorTest::open_log_dir()
 {
 	CString dir_path;
+	CString function_folder_map[8] = { _T("Seq(wr+r)"), _T("Seq(w+r)"),
+								_T("Rev(wr+r)"), _T("Rev(w+r)"),
+								_T("Testmode"), _T("Onewrite"), _T("Verify"), _T("Varyzone")};
 	
-	dir_path.Format(_T("D:\\stortest_log\\fun_%u_LBA_%u_%u_wr_%u_%u_loop_%u"), function_idx, LBA_start, LBA_end, wr_sector_min, wr_sector_max, loop_num);
+	dir_path.Format(_T("D:\\stortest_log\\%s_LBA_%010u_%010u_wr_%04u_%04u_loop_%05u"),
+					function_folder_map[function_idx], LBA_start, LBA_end, wr_sector_min, wr_sector_max, loop_num);
 
 	if (dirExists(dir_path)) {
 		TRACE(_T("\n[Error] Log directory exists.\n"));

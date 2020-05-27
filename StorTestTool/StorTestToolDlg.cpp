@@ -246,7 +246,7 @@ void CStorTestToolDlg::OnBnClickedRun()
 
 	TRACE(_T("\n[Msg] Device selected: %c:\n"
 				"[Msg] Function selected: %s\n"
-				"[Msg] Setup: {LBA range: %u ~ %u; write/read sector range: %u ~ %u, loop number: %u}\n"),
+				"[Msg] Setup: {LBA range: %u~%u; write/read sector range: %u~%u, loop number: %u}\n"),
 				selected_device.getIdent(), 
 				function_map[function_idx], 
 				LBA_start, LBA_end, wr_sector_min, wr_sector_max, loop_num);
@@ -367,6 +367,12 @@ void CStorTestToolDlg::update_progress()
 		Log_edit_ctrl.ReplaceSel(str);
 		Log_edit_ctrl.PostMessage(WM_VSCROLL, SB_BOTTOM, 0); // scroll location
 	} while (tot_loop_cnt == 0 || cur_loop_cnt < tot_loop_cnt);
+	
+	// update the remain log
+	str = stortest->get_log_msg();
+	Log_edit_ctrl.SetSel(-1, -1);
+	Log_edit_ctrl.ReplaceSel(str);
+	Log_edit_ctrl.PostMessage(WM_VSCROLL, SB_BOTTOM, 0); // scroll location
 
 	// get stortest thread result
 	try
