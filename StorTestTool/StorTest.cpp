@@ -134,6 +134,28 @@ void StorTest::diff_cmd(WORD loop, DWORD start_LBA, DWORD cmd_length, BYTE* read
 	set_error_msg(msg);
 }
 
+HANDLE StorTest::get_file_handle(CString file_path)
+{
+	wchar_t* path_tmp = cstr2strW(file_path);
+	HANDLE file_handle = CreateFile(
+		path_tmp,
+		GENERIC_WRITE,
+		FILE_SHARE_READ,
+		NULL,
+		CREATE_NEW,
+		FILE_ATTRIBUTE_NORMAL,
+		NULL);
+	delete[] path_tmp;
+
+	unsigned char Header[2]; // unicode text file header
+	DWORD bytesWritten;
+	Header[0] = 0xFF;
+	Header[1] = 0xFE;
+	WriteFile(file_handle, Header, 2, &bytesWritten, NULL);
+
+	return file_handle;
+}
+
 BOOL StorTest::fun_sequential_ac()
 {
 	// device information
@@ -149,6 +171,11 @@ BOOL StorTest::fun_sequential_ac()
 	CString msg;
 	DWORD cur_LBA;
 	for (WORD cur_loop = 0; loop_num == 0 || cur_loop < loop_num; cur_loop++) {
+		// open command log file
+		CString cmd_file_name;
+		cmd_file_name.Format(_T("\\loop%05u_command.txt"), cur_loop);
+		cmd_file_hand = get_file_handle(dir_path + cmd_file_name);
+
 		// W/R
 		msg.Format(_T("\tStart loop %5u write/read\n"), cur_loop);
 		set_log_msg(msg);
@@ -176,6 +203,8 @@ BOOL StorTest::fun_sequential_ac()
 			if (!SCSISectorIO(hDevice, max_transf_len, cur_LBA_offset, wr_data, wr_sec_len, TRUE)) {
 				TRACE(_T("\n[Error] Write LBA failed. Error Code = %u.\n"), GetLastError());
 				delete[] wr_data;
+				write_log_file(); // write cmd and error log, ehance the msg buffer is empty
+				CloseHandle(cmd_file_hand);
 				CloseHandle(hDevice);
 				throw std::runtime_error("Write LBA failed.");
 			}
@@ -190,6 +219,8 @@ BOOL StorTest::fun_sequential_ac()
 			if (!SCSISectorIO(hDevice, max_transf_len, cur_LBA_offset, wr_data, wr_sec_len, FALSE)) {
 				TRACE(_T("\n[Error] Read LBA failed. Error Code = %u.\n"), GetLastError());
 				delete[] wr_data;
+				write_log_file(); // write cmd and error log, ehance the msg buffer is empty
+				CloseHandle(cmd_file_hand);
 				CloseHandle(hDevice);
 				throw std::runtime_error("Read LBA failed.");
 			}
@@ -214,6 +245,9 @@ BOOL StorTest::fun_sequential_ac()
 					// abort stortest
 					set_terminate();
 					delete[] wr_data;
+					write_log_file(); // write cmd and error log, ehance the msg buffer is empty
+					CloseHandle(cmd_file_hand);
+					CloseHandle(hDevice);
 					throw std::runtime_error("Find an error pattern. Show in error log.");
 				}
 			}
@@ -252,6 +286,8 @@ BOOL StorTest::fun_sequential_ac()
 			if (!SCSISectorIO(hDevice, max_transf_len, cur_LBA_offset, wr_data, wr_sec_len, FALSE)) {
 				TRACE(_T("\n[Error] Read LBA failed. Error Code = %u.\n"), GetLastError());
 				delete[] wr_data;
+				write_log_file(); // write cmd and error log, ehance the msg buffer is empty
+				CloseHandle(cmd_file_hand);
 				CloseHandle(hDevice);
 				throw std::runtime_error("Read LBA failed.");
 			}
@@ -282,6 +318,9 @@ BOOL StorTest::fun_sequential_ac()
 					// abort stortest
 					set_terminate();
 					delete[] wr_data;
+					write_log_file(); // write cmd and error log, ehance the msg buffer is empty
+					CloseHandle(cmd_file_hand);
+					CloseHandle(hDevice);
 					throw std::runtime_error("Find an error pattern. Show in error log.");
 				}
 			}
@@ -294,6 +333,9 @@ BOOL StorTest::fun_sequential_ac()
 		if (if_terminate) break;
 
 		cur_loop_cnt++;
+
+		write_log_file(); // write cmd and error log, ehance the msg buffer is empty
+		CloseHandle(cmd_file_hand);
 	}
 
 	CloseHandle(hDevice);
@@ -335,6 +377,8 @@ BOOL StorTest::fun_onewrite()
 	srand(time(NULL));
 	CString msg;
 	DWORD cur_LBA = LBA_start;
+	// open command log file
+	cmd_file_hand = get_file_handle(dir_path + CString(_T("\\command.txt")));
 	while (cur_LBA <= LBA_end)
 	{
 		if (if_pause) {
@@ -361,6 +405,8 @@ BOOL StorTest::fun_onewrite()
 		if (!SCSISectorIO(hDevice, max_transf_len, cur_LBA_offset, wr_data, wr_sec_len, TRUE)) {
 			TRACE(_T("\n[Error] Write LBA failed. Error Code = %u.\n"), GetLastError());
 			delete[] wr_data;
+			write_log_file(); // write cmd and error log, ehance the msg buffer is empty
+			CloseHandle(cmd_file_hand);
 			CloseHandle(hDevice);
 			throw std::runtime_error("Write LBA failed.");
 		}
@@ -375,6 +421,9 @@ BOOL StorTest::fun_onewrite()
 		delete[] wr_data;
 	}
 	cur_loop_cnt += 1;
+
+	write_log_file(); // write cmd and error log, ehance the msg buffer is empty
+	CloseHandle(cmd_file_hand);
 
 	CloseHandle(hDevice);
 
@@ -426,7 +475,6 @@ BOOL StorTest::run()
 
 BOOL StorTest::open_log_dir()
 {
-	CString dir_path;
 	CString function_folder_map[8] = { _T("Seq(wr+r)"), _T("Seq(w+r)"),
 								_T("Rev(wr+r)"), _T("Rev(w+r)"),
 								_T("Testmode"), _T("Onewrite"), _T("Verify"), _T("Varyzone")};
@@ -441,63 +489,19 @@ BOOL StorTest::open_log_dir()
 	CreateDirectory(dir_path, NULL);
 	set_log_msg(CString(_T("Log directory: ")) + dir_path + CString(_T("\n")));
 
-	// open command log file and error log file
-	wchar_t* path_tmp = cstr2strW(dir_path + CString(_T("\\command.txt")));
-	cmd_file_hand = CreateFile(
-		path_tmp,
-		GENERIC_WRITE,
-		FILE_SHARE_READ,
-		NULL,
-		CREATE_NEW,
-		FILE_ATTRIBUTE_NORMAL,
-		NULL);
-	delete[] path_tmp;
-
-	path_tmp = cstr2strW(dir_path + CString(_T("\\error.txt")));
-	error_file_hand = CreateFile(
-		path_tmp,
-		GENERIC_WRITE,
-		FILE_SHARE_READ,
-		NULL,
-		CREATE_NEW,
-		FILE_ATTRIBUTE_NORMAL,
-		NULL);
-	delete[] path_tmp;
-
-	unsigned char Header[2]; // unicode text file header
-	DWORD bytesWritten;
-	Header[0] = 0xFF;
-	Header[1] = 0xFE;
-	WriteFile(cmd_file_hand, Header, 2, &bytesWritten, NULL);
-	WriteFile(error_file_hand, Header, 2, &bytesWritten, NULL);
+	// open error log file
+	error_file_hand = get_file_handle(dir_path + CString(_T("\\error.txt")));
 	
 	return TRUE;
 }
 
-void StorTest::close_log_files()
+void StorTest::close_error_log_file()
 {
-	CloseHandle(cmd_file_hand);
 	CloseHandle(error_file_hand);
 }
 
-UINT StorTest::get_cur_LBA_cnt()
+void StorTest::write_log_file()
 {
-	return cur_LBA_cnt;
-}
-
-UINT StorTest::get_cur_loop()
-{
-	return cur_loop_cnt;
-}
-
-CString StorTest::get_log_msg()
-{
-	CString rtn;
-	log_msg_mutex.lock();
-	rtn = log_msg;
-	log_msg.Empty();
-	log_msg_mutex.unlock();
-
 	// write log
 	DWORD bytesWritten;
 	if (!cmd_msg.IsEmpty()) {
@@ -522,8 +526,30 @@ CString StorTest::get_log_msg()
 		error_msg.Empty();
 		error_msg_mutex.unlock();
 	}
+}
+
+CString StorTest::get_log_msg()
+{
+	CString rtn;
+	log_msg_mutex.lock();
+	rtn = log_msg;
+	log_msg.Empty();
+	log_msg_mutex.unlock();
+
+	// write cmd and error log
+	write_log_file();
 
 	return rtn;
+}
+
+UINT StorTest::get_cur_LBA_cnt()
+{
+	return cur_LBA_cnt;
+}
+
+UINT StorTest::get_cur_loop()
+{
+	return cur_loop_cnt;
 }
 
 void StorTest::set_terminate()

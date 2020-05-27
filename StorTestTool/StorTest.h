@@ -8,28 +8,40 @@
 class StorTest
 {
 private:
+	// setup parameters
 	Device selected_device;
 	DWORD function_idx{ 0 }, LBA_start{ 0 }, LBA_end{ 0 }, wr_sector_min{ 0 }, wr_sector_max{ 0 };
 	WORD loop_num{ 0 };
+
+	// control progress bar
 	std::atomic_uint cur_LBA_cnt{ 0 }, cur_loop_cnt{ 0 };
+	std::atomic_bool if_terminate{ FALSE }, if_pause{ FALSE };
+
+	// log msg
 	std::mutex log_msg_mutex, cmd_msg_mutex, error_msg_mutex;
 	CString log_msg{ CString(_T("")) }, cmd_msg{ CString(_T("")) }, error_msg{ CString(_T("")) };
-	std::atomic_bool if_terminate{ FALSE }, if_pause{ FALSE };
+	
+	// log files 
+	CString dir_path;
 	HANDLE cmd_file_hand{ NULL }, error_file_hand{ NULL };
 
 	// timer
-	LARGE_INTEGER nFreq;
-	LARGE_INTEGER nBeginTime;
-	LARGE_INTEGER nEndTime;
-	double cmd_time;
+	LARGE_INTEGER nFreq{ NULL };
+	LARGE_INTEGER nBeginTime{ NULL };
+	LARGE_INTEGER nEndTime{ NULL };
+	double cmd_time{ NULL };
 	
 	void dec_in_hex(BYTE* hex_byte, DWORD num);
 	void get_LBA_pattern(BYTE* LBA_pattern, DWORD LBA, WORD loop);
+
 	void set_log_msg(CString msg);
 	void set_cmd_msg(CString msg);
 	void set_error_msg(CString msg);
+	
 	BOOL compare_sector(BYTE* expect_buf, BYTE* read_buf);
 	void diff_cmd(WORD loop, DWORD start_LBA, DWORD cmd_length, BYTE* read_buf);
+
+	HANDLE get_file_handle(CString file_path);
 
 	BOOL fun_sequential_ac();
 	BOOL fun_sequential_bc();
@@ -43,12 +55,15 @@ private:
 public:
 	StorTest(Device dev, DWORD fun_idx, DWORD start, DWORD end, DWORD smin, DWORD smax, WORD loopn);
 	BOOL run();
+
 	BOOL open_log_dir();
-	void close_log_files();
+	void close_error_log_file();
+	void write_log_file();
+	CString get_log_msg();
 
 	UINT get_cur_LBA_cnt();
 	UINT get_cur_loop();
-	CString get_log_msg();
+
 	void set_terminate();
 	BOOL get_terminate();
 	void set_pause(bool setup);

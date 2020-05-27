@@ -393,7 +393,7 @@ void CStorTestToolDlg::update_progress()
 		MessageBox((LPCTSTR)CA2T(msg.c_str()), _T("Error"), MB_ICONERROR);
 	}
 
-	stortest->close_log_files();
+	stortest->close_error_log_file();
 	if(stortest)
 		delete stortest;
 
