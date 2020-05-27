@@ -366,7 +366,7 @@ void CStorTestToolDlg::update_progress()
 		Log_edit_ctrl.SetSel(-1, -1);
 		Log_edit_ctrl.ReplaceSel(str);
 		Log_edit_ctrl.PostMessage(WM_VSCROLL, SB_BOTTOM, 0); // scroll location
-	} while (cur_loop_cnt < tot_loop_cnt);
+	} while (tot_loop_cnt == 0 || cur_loop_cnt < tot_loop_cnt);
 
 	// get stortest thread result
 	try
@@ -384,7 +384,7 @@ void CStorTestToolDlg::update_progress()
 	catch (const std::exception& exp)
 	{
 		string msg = exp.what();
-		MessageBox((LPCTSTR)msg.c_str(), _T("Error"), MB_ICONERROR);
+		MessageBox((LPCTSTR)CA2T(msg.c_str()), _T("Error"), MB_ICONERROR);
 	}
 
 	stortest->close_log_files();

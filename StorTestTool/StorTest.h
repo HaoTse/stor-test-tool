@@ -18,10 +18,12 @@ private:
 	HANDLE cmd_file_hand{ NULL }, error_file_hand{ NULL };
 	
 	void dec_in_hex(BYTE* hex_byte, DWORD num);
-	void get_LBA_pattern(BYTE* LBA_pattern, DWORD buf_offset, DWORD LBA, WORD loop);
+	void get_LBA_pattern(BYTE* LBA_pattern, DWORD LBA, WORD loop);
 	void set_log_msg(CString msg);
 	void set_cmd_msg(CString msg);
 	void set_error_msg(CString msg);
+	BOOL compare_sector(BYTE* expect_buf, BYTE* read_buf);
+	void diff_cmd(WORD loop, DWORD start_LBA, DWORD cmd_length, BYTE* read_buf);
 
 	BOOL fun_sequential_ac();
 	BOOL fun_sequential_bc();
