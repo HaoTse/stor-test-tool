@@ -4,6 +4,7 @@
 #include <string>
 #include <sstream>
 #include <iostream>
+#include <random>
 
 #include "SCSI_IO.h"
 #include "utils.h"
@@ -167,7 +168,6 @@ BOOL StorTest::fun_sequential_ac()
 		throw std::runtime_error("Open device failed.");
 	}
 
-	srand(time(NULL));
 	CString msg;
 	DWORD cur_LBA;
 	for (WORD cur_loop = 0; loop_num == 0 || cur_loop < loop_num; cur_loop++) {
@@ -175,6 +175,11 @@ BOOL StorTest::fun_sequential_ac()
 		CString cmd_file_name;
 		cmd_file_name.Format(_T("\\loop%05u_command.txt"), cur_loop);
 		cmd_file_hand = get_file_handle(dir_path + cmd_file_name);
+
+		// initial random
+		std::random_device rd;
+		std::mt19937 generator(rd());
+		std::uniform_int_distribution<int> distribution(wr_sector_min, wr_sector_max);
 
 		// W/R
 		msg.Format(_T("\tStart loop %5u write/read\n"), cur_loop);
@@ -186,7 +191,7 @@ BOOL StorTest::fun_sequential_ac()
 			if (if_pause) continue;
 			if (if_terminate) break;
 
-			DWORD wr_sec_num = rand() % (wr_sector_max - wr_sector_min + 1) + wr_sector_min;
+			DWORD wr_sec_num = distribution(generator);
 			// check remain LBA
 			wr_sec_num = (wr_sec_num < (LBA_end - cur_LBA + 1)) ? wr_sec_num : (LBA_end - cur_LBA + 1);
 			DWORD wr_sec_len = wr_sec_num * PHYSICAL_SECTOR_SIZE;
@@ -374,7 +379,11 @@ BOOL StorTest::fun_onewrite()
 		throw std::runtime_error("Open device failed.");
 	}
 
-	srand(time(NULL));
+	// initial random
+	std::random_device rd;
+	std::mt19937 generator(rd());
+	std::uniform_int_distribution<int> distribution(wr_sector_min, wr_sector_max);
+
 	CString msg;
 	DWORD cur_LBA = LBA_start;
 	// open command log file
@@ -388,7 +397,7 @@ BOOL StorTest::fun_onewrite()
 			break;
 		}
 
-		DWORD wr_sec_num = rand() % (wr_sector_max - wr_sector_min + 1) + wr_sector_min;
+		DWORD wr_sec_num = distribution(generator);;
 		// check remain LBA
 		wr_sec_num = (wr_sec_num < (LBA_end - cur_LBA + 1)) ? wr_sec_num : (LBA_end - cur_LBA + 1);
 		DWORD wr_sec_len = wr_sec_num * PHYSICAL_SECTOR_SIZE;

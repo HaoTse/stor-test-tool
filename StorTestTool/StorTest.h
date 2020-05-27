@@ -30,7 +30,7 @@ private:
 	LARGE_INTEGER nBeginTime{ NULL };
 	LARGE_INTEGER nEndTime{ NULL };
 	double cmd_time{ NULL };
-	
+
 	void dec_in_hex(BYTE* hex_byte, DWORD num);
 	void get_LBA_pattern(BYTE* LBA_pattern, DWORD LBA, WORD loop);
 
