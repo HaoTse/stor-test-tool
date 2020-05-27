@@ -10,7 +10,10 @@
 
 StorTest::StorTest(Device dev, DWORD fun_idx, DWORD start, DWORD end, DWORD smin, DWORD smax, WORD loopn) :
 	selected_device(dev), function_idx(fun_idx), LBA_start(start), LBA_end(end),
-	wr_sector_min(smin), wr_sector_max(smax), loop_num(loopn) {}
+	wr_sector_min(smin), wr_sector_max(smax), loop_num(loopn)
+{
+	QueryPerformanceFrequency(&nFreq);
+}
 
 void StorTest::dec_in_hex(BYTE* hex_byte, DWORD num)
 {
@@ -168,6 +171,7 @@ BOOL StorTest::fun_sequential_ac()
 			}
 
 			// wrtie LBA
+			QueryPerformanceCounter(&nBeginTime); // timer begin
 			ULONGLONG cur_LBA_offset = (ULONGLONG)cur_LBA * PHYSICAL_SECTOR_SIZE;
 			if (!SCSISectorIO(hDevice, max_transf_len, cur_LBA_offset, wr_data, wr_sec_len, TRUE)) {
 				TRACE(_T("\n[Error] Write LBA failed. Error Code = %u.\n"), GetLastError());
@@ -175,17 +179,24 @@ BOOL StorTest::fun_sequential_ac()
 				CloseHandle(hDevice);
 				throw std::runtime_error("Write LBA failed.");
 			}
-			msg.Format(_T("Loop %5u Write LBA: %10u~%10u (size: %4u)\n"), cur_loop, cur_LBA, cur_LBA + wr_sec_num - 1, wr_sec_num);
+			QueryPerformanceCounter(&nEndTime); // timer end
+			cmd_time = ((double)(nEndTime.QuadPart - nBeginTime.QuadPart) * 1000) / (double)nFreq.QuadPart;
+			msg.Format(_T("Loop %5u Write LBA: %10u~%10u (size: %4u) Elapsed %8.3f ms\n"),
+						cur_loop, cur_LBA, cur_LBA + wr_sec_num - 1, wr_sec_num, cmd_time);
 			set_cmd_msg(msg);
 
 			// read LBA
+			QueryPerformanceCounter(&nBeginTime); // timer begin
 			if (!SCSISectorIO(hDevice, max_transf_len, cur_LBA_offset, wr_data, wr_sec_len, FALSE)) {
 				TRACE(_T("\n[Error] Read LBA failed. Error Code = %u.\n"), GetLastError());
 				delete[] wr_data;
 				CloseHandle(hDevice);
 				throw std::runtime_error("Read LBA failed.");
 			}
-			msg.Format(_T("Loop %5u Read LBA:  %10u~%10u (size: %4u)\n"), cur_loop, cur_LBA, cur_LBA + wr_sec_num - 1, wr_sec_num);
+			QueryPerformanceCounter(&nEndTime); // timer end
+			cmd_time = ((double)(nEndTime.QuadPart - nBeginTime.QuadPart) * 1000) / (double)nFreq.QuadPart;
+			msg.Format(_T("Loop %5u Read LBA:  %10u~%10u (size: %4u) Elapsed %8.3f ms\n"),
+						cur_loop, cur_LBA, cur_LBA + wr_sec_num - 1, wr_sec_num, cmd_time);
 			set_cmd_msg(msg);
 
 			// compare pattern
@@ -236,6 +247,7 @@ BOOL StorTest::fun_sequential_ac()
 			}
 
 			// read LBA
+			QueryPerformanceCounter(&nBeginTime); // timer begin
 			ULONGLONG cur_LBA_offset = (ULONGLONG)cur_LBA * PHYSICAL_SECTOR_SIZE;
 			if (!SCSISectorIO(hDevice, max_transf_len, cur_LBA_offset, wr_data, wr_sec_len, FALSE)) {
 				TRACE(_T("\n[Error] Read LBA failed. Error Code = %u.\n"), GetLastError());
@@ -243,7 +255,10 @@ BOOL StorTest::fun_sequential_ac()
 				CloseHandle(hDevice);
 				throw std::runtime_error("Read LBA failed.");
 			}
-			msg.Format(_T("Loop %5u Read LBA:  %10u~%10u (size: %4u)\n"), cur_loop, cur_LBA, cur_LBA + wr_sec_num - 1, wr_sec_num);
+			QueryPerformanceCounter(&nEndTime); // timer end
+			cmd_time = ((double)(nEndTime.QuadPart - nBeginTime.QuadPart) * 1000) / (double)nFreq.QuadPart;
+			msg.Format(_T("Loop %5u Read LBA:  %10u~%10u (size: %4u) Elapsed %8.3f ms\n"),
+						cur_loop, cur_LBA, cur_LBA + wr_sec_num - 1, wr_sec_num, cmd_time);
 			set_cmd_msg(msg);
 
 			// compare pattern
@@ -252,10 +267,10 @@ BOOL StorTest::fun_sequential_ac()
 				get_LBA_pattern(expect_data, cur_LBA + i, cur_loop);
 
 				// Make an error pattern
-				if (cur_LBA + i == 23 && cur_loop == 3) {
-					*(wr_data + i * PHYSICAL_SECTOR_SIZE + 23) = 0xFF;
-					*(wr_data + i * PHYSICAL_SECTOR_SIZE + 0) = 0x01;
-				}
+				//if (cur_LBA + i == 23 && cur_loop == 3) {
+				//	*(wr_data + i * PHYSICAL_SECTOR_SIZE + 23) = 0xFF;
+				//	*(wr_data + i * PHYSICAL_SECTOR_SIZE + 0) = 0x01;
+				//}
 
 				if (!compare_sector(expect_data, wr_data + i * PHYSICAL_SECTOR_SIZE)) {
 					msg.Format(_T("\tFound expect in loop %u and LBA %u\n"), cur_loop, cur_LBA + i);
@@ -341,6 +356,7 @@ BOOL StorTest::fun_onewrite()
 		}
 
 		// wrtie LBA
+		QueryPerformanceCounter(&nBeginTime); // timer begin
 		ULONGLONG cur_LBA_offset = (ULONGLONG)cur_LBA * PHYSICAL_SECTOR_SIZE;
 		if (!SCSISectorIO(hDevice, max_transf_len, cur_LBA_offset, wr_data, wr_sec_len, TRUE)) {
 			TRACE(_T("\n[Error] Write LBA failed. Error Code = %u.\n"), GetLastError());
@@ -348,8 +364,9 @@ BOOL StorTest::fun_onewrite()
 			CloseHandle(hDevice);
 			throw std::runtime_error("Write LBA failed.");
 		}
-
-		msg.Format(_T("Write LBA: %10u~%10u (size: %4u)\n"), cur_LBA, cur_LBA + wr_sec_num - 1, wr_sec_num);
+		QueryPerformanceCounter(&nEndTime); // timer end
+		cmd_time = ((double)(nEndTime.QuadPart - nBeginTime.QuadPart) * 1000) / (double)nFreq.QuadPart;
+		msg.Format(_T("Write LBA: %10u~%10u (size: %4u) Elapsed %8.3f ms\n"), cur_LBA, cur_LBA + wr_sec_num - 1, wr_sec_num, cmd_time);
 		set_cmd_msg(msg);
 
 		cur_LBA += wr_sec_num;

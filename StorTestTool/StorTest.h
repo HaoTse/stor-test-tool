@@ -16,6 +16,12 @@ private:
 	CString log_msg{ CString(_T("")) }, cmd_msg{ CString(_T("")) }, error_msg{ CString(_T("")) };
 	std::atomic_bool if_terminate{ FALSE }, if_pause{ FALSE };
 	HANDLE cmd_file_hand{ NULL }, error_file_hand{ NULL };
+
+	// timer
+	LARGE_INTEGER nFreq;
+	LARGE_INTEGER nBeginTime;
+	LARGE_INTEGER nEndTime;
+	double cmd_time;
 	
 	void dec_in_hex(BYTE* hex_byte, DWORD num);
 	void get_LBA_pattern(BYTE* LBA_pattern, DWORD LBA, WORD loop);
