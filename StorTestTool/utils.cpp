@@ -78,3 +78,11 @@ BOOL dirExists(CString path) {
 
 	return dwAttrib != INVALID_FILE_ATTRIBUTES;
 }
+
+DWORD countBits(DWORD n)
+{
+	if (n == 0)
+		return 0;
+	else
+		return (n & 1) + countBits(n >> 1);
+}

@@ -14,3 +14,5 @@ void SetDropDownHeight(CComboBox* pMyComboBox, int itemsToShow);
 int enumUsbDisk(vector<Device>& device_list, int cnt);
 
 BOOL dirExists(CString path);
+
+DWORD countBits(DWORD n);

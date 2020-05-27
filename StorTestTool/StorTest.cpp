@@ -79,44 +79,54 @@ BOOL StorTest::compare_sector(BYTE* expect_buf, BYTE* read_buf)
 
 void StorTest::diff_cmd(WORD loop, DWORD start_LBA, DWORD cmd_length, BYTE* read_buf)
 {
-	CString msg, tmp;
-	CString expect_str = _T(""), read_str = _T("");
-	msg.Format(_T("Loop: %u\n"), loop);
+	CString title, diff_table, tmp, msg = _T("");
+	CString if_error_str;
+	CString expect_str, read_str;
+	DWORD error_LBA_cnt = 0, error_bit_cnt = 0, error_byte_cnt = 0;
 
 	BYTE expect_data[PHYSICAL_SECTOR_SIZE];
-	for (DWORD l = 0; l < cmd_length; l++) {
-		tmp.Format(_T("LBA: %u\n"), start_LBA + l);
-		msg += tmp;
-		get_LBA_pattern(expect_data, start_LBA + l, loop);
+	for (DWORD cur_LBA = 0; cur_LBA < cmd_length; cur_LBA++) {
+		title.Format(_T("LBA %u"), start_LBA + cur_LBA);
+		diff_table = CString(_T("\tLBA Pattern")) + CString(_T("\t\t\t\t\t\t\t\t\t\t\tRead Data\n"));
+		get_LBA_pattern(expect_data, start_LBA + cur_LBA, loop);
 
-		expect_str = _T("");
-		read_str = _T("");
+		if_error_str = _T("\n");
 		for (DWORD i = 0; i < (PHYSICAL_SECTOR_SIZE >> 4); i++) {
-			expect_str += CString(_T("\t"));
-			read_str += CString(_T("\t"));
+			expect_str = CString(_T("\t"));
+			read_str = CString(_T(" | "));
 
 			for (DWORD j = 0; j < 16; j++) {
 				DWORD cur_idx = (i << 4) + j;
-				if (*(expect_data + cur_idx) != *(read_buf + l * PHYSICAL_SECTOR_SIZE + cur_idx)) {
-					tmp.Format(_T("<%3u>"), *(expect_data + cur_idx));
+				BYTE tmp_expect = *(expect_data + cur_idx);
+				BYTE tmp_read = *(read_buf + cur_LBA * PHYSICAL_SECTOR_SIZE + cur_idx);
+				BYTE diff_byte = tmp_expect ^ tmp_read;
+				if (diff_byte != 0) {
+					tmp.Format(_T(">%02X"), tmp_expect);
 					expect_str += tmp;
-					tmp.Format(_T("<%3u>"), *(read_buf + l * PHYSICAL_SECTOR_SIZE + cur_idx));
+					tmp.Format(_T(">%02X"), tmp_read);
 					read_str += tmp;
+					if_error_str = _T(" (Error)\n");
+
+					// count error byte and error bit
+					error_byte_cnt++;
+					error_bit_cnt += countBits(diff_byte);
 				}
 				else {
-					tmp.Format(_T("%5u"), *(expect_data + cur_idx));
+					tmp.Format(_T(" %02X"), tmp_expect);
 					expect_str += tmp;
-					tmp.Format(_T("%5u"), *(read_buf + l * PHYSICAL_SECTOR_SIZE + cur_idx));
+					tmp.Format(_T(" %02X"), tmp_read);
 					read_str += tmp;
 				}
 			}
 
-			expect_str += CString(_T("\n"));
-			read_str += CString(_T("\n"));
+			diff_table += expect_str + read_str + CString(_T("\n"));
 		}
+		if (if_error_str != _T("\n")) error_LBA_cnt++;
 
-		msg += CString(_T("LBA Pattern:\n")) + expect_str + CString(_T("Read Data:\n")) + read_str;
+		msg += title + if_error_str + diff_table;
 	}
+	tmp.Format(_T("Error LBA count: %u, Error Byte count: %u, Error bits count: %u\n"), error_LBA_cnt, error_byte_cnt, error_bit_cnt);
+	msg = tmp + msg;
 
 	set_error_msg(msg);
 }
@@ -184,9 +194,9 @@ BOOL StorTest::fun_sequential_ac()
 				get_LBA_pattern(expect_data, cur_LBA + i, cur_loop);
 
 				if (!compare_sector(expect_data, wr_data + i * PHYSICAL_SECTOR_SIZE)) {
-					msg.Format(_T("\tFound expect in loop %5u and LBA %10u\n"), cur_loop, cur_LBA + i);
+					msg.Format(_T("\tFound expect in loop %u and LBA %u\n"), cur_loop, cur_LBA + i);
 					set_log_msg(msg);
-					msg.Format(_T("Sequential W/R LBA: %u, Size: %u\n"), cur_LBA, wr_sec_num);
+					msg.Format(_T("Sequential W/R Loop: %u, LBA: %u, Size: %u\n"), cur_loop, cur_LBA, wr_sec_num);
 					set_error_msg(msg);
 					diff_cmd(cur_loop, cur_LBA, wr_sec_num, wr_data);
 
@@ -242,13 +252,15 @@ BOOL StorTest::fun_sequential_ac()
 				get_LBA_pattern(expect_data, cur_LBA + i, cur_loop);
 
 				// Make an error pattern
-				if (cur_LBA + i == 23 && cur_loop == 3)
+				if (cur_LBA + i == 23 && cur_loop == 3) {
 					*(wr_data + i * PHYSICAL_SECTOR_SIZE + 23) = 0xFF;
+					*(wr_data + i * PHYSICAL_SECTOR_SIZE + 0) = 0x01;
+				}
 
 				if (!compare_sector(expect_data, wr_data + i * PHYSICAL_SECTOR_SIZE)) {
-					msg.Format(_T("\tFound expect in loop %5u and LBA %10u\n"), cur_loop, cur_LBA + i);
+					msg.Format(_T("\tFound expect in loop %u and LBA %u\n"), cur_loop, cur_LBA + i);
 					set_log_msg(msg);
-					msg.Format(_T("Sequential R LBA: %u, Size: %u\n"), cur_LBA, wr_sec_num);
+					msg.Format(_T("Sequential R Loop: %u, LBA: %u, Size: %u\n"), cur_loop, cur_LBA, wr_sec_num);
 					set_error_msg(msg);
 					diff_cmd(cur_loop, cur_LBA, wr_sec_num, wr_data);
 
