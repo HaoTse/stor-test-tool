@@ -2,8 +2,19 @@
 
 #include <atomic>
 #include <mutex>
+#include <random>
 
 #include "device.h"
+
+// c++11 random generator
+typedef std::mt19937 RNGInt;
+typedef struct STL_RNG
+{
+	STL_RNG(RNGInt& rng, DWORD _min, DWORD _max) : gen(rng), wr_sec_min(_min), wr_sec_max(_max) {}
+	RNGInt& gen;
+	DWORD wr_sec_min, wr_sec_max;
+	DWORD operator()() { return std::uniform_int_distribution<DWORD>(wr_sec_min, wr_sec_max)(gen); }
+} STL_RNG;
 
 class StorTest
 {
@@ -42,6 +53,10 @@ private:
 	void diff_cmd(WORD loop, DWORD start_LBA, DWORD cmd_length, BYTE* read_buf);
 
 	HANDLE get_file_handle(CString file_path);
+
+	BOOL sfun_sequential_a(HANDLE hDevice, WORD cur_loop, STL_RNG stl_rng);
+	BOOL sfun_sequential_b(HANDLE hDevice, WORD cur_loop, STL_RNG stl_rng);
+	BOOL sfun_sequential_c(HANDLE hDevice, WORD cur_loop);
 
 	BOOL fun_sequential_ac();
 	BOOL fun_sequential_bc();

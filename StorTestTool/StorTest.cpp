@@ -4,10 +4,10 @@
 #include <string>
 #include <sstream>
 #include <iostream>
-#include <random>
 
 #include "SCSI_IO.h"
 #include "utils.h"
+
 
 StorTest::StorTest(Device dev, DWORD fun_idx, DWORD start, DWORD end, DWORD smin, DWORD smax, WORD loopn) :
 	selected_device(dev), function_idx(fun_idx), LBA_start(start), LBA_end(end),
@@ -157,6 +157,231 @@ HANDLE StorTest::get_file_handle(CString file_path)
 	return file_handle;
 }
 
+BOOL StorTest::sfun_sequential_a(HANDLE hDevice, WORD cur_loop, STL_RNG stl_rng)
+{
+	CString msg;
+	DWORD cur_LBA;
+	DWORD max_transf_len = selected_device.getMaxTransfLen();
+
+	msg.Format(_T("\tStart loop %5u write/read\n"), cur_loop);
+	set_log_msg(msg);
+
+	cur_LBA = LBA_start;
+	cur_LBA_cnt = 0;
+	while (cur_LBA < LBA_end)
+	{
+		if (if_pause) continue;
+		if (if_terminate) return FALSE;
+
+		// check remain LBA
+		DWORD wr_sec_num = stl_rng();
+		wr_sec_num = (wr_sec_num < (LBA_end - cur_LBA)) ? wr_sec_num : (LBA_end - cur_LBA);
+		DWORD wr_sec_len = wr_sec_num * PHYSICAL_SECTOR_SIZE;
+		BYTE* wr_data = new BYTE[wr_sec_len];
+
+		// get LBA pattern
+		for (DWORD i = 0; i < wr_sec_num; i++) {
+			get_LBA_pattern(wr_data + i * PHYSICAL_SECTOR_SIZE, cur_LBA + i, cur_loop);
+		}
+
+		// wrtie LBA
+		QueryPerformanceCounter(&nBeginTime); // timer begin
+		ULONGLONG cur_LBA_offset = (ULONGLONG)cur_LBA * PHYSICAL_SECTOR_SIZE;
+		if (!SCSISectorIO(hDevice, max_transf_len, cur_LBA_offset, wr_data, wr_sec_len, TRUE)) {
+			TRACE(_T("\n[Error] Write LBA failed. Error Code = %u.\n"), GetLastError());
+			delete[] wr_data;
+			write_log_file(); // write cmd and error log, ehance the msg buffer is empty
+			CloseHandle(cmd_file_hand);
+			CloseHandle(hDevice);
+			throw std::runtime_error("Write LBA failed.");
+		}
+		QueryPerformanceCounter(&nEndTime); // timer end
+		cmd_time = ((double)(nEndTime.QuadPart - nBeginTime.QuadPart) * 1000) / (double)nFreq.QuadPart;
+		msg.Format(_T("Loop %5u Write LBA: %10u~%10u (size: %4u) Elapsed %8.3f ms\n"),
+			cur_loop, cur_LBA, cur_LBA + wr_sec_num - 1, wr_sec_num, cmd_time);
+		set_cmd_msg(msg);
+
+		// read LBA
+		QueryPerformanceCounter(&nBeginTime); // timer begin
+		if (!SCSISectorIO(hDevice, max_transf_len, cur_LBA_offset, wr_data, wr_sec_len, FALSE)) {
+			TRACE(_T("\n[Error] Read LBA failed. Error Code = %u.\n"), GetLastError());
+			delete[] wr_data;
+			write_log_file(); // write cmd and error log, ehance the msg buffer is empty
+			CloseHandle(cmd_file_hand);
+			CloseHandle(hDevice);
+			throw std::runtime_error("Read LBA failed.");
+		}
+		QueryPerformanceCounter(&nEndTime); // timer end
+		cmd_time = ((double)(nEndTime.QuadPart - nBeginTime.QuadPart) * 1000) / (double)nFreq.QuadPart;
+		msg.Format(_T("Loop %5u Read LBA:  %10u~%10u (size: %4u) Elapsed %8.3f ms\n"),
+			cur_loop, cur_LBA, cur_LBA + wr_sec_num - 1, wr_sec_num, cmd_time);
+		set_cmd_msg(msg);
+
+		// compare pattern
+		BYTE expect_data[PHYSICAL_SECTOR_SIZE];
+		for (DWORD i = 0; i < wr_sec_num; i++) {
+			get_LBA_pattern(expect_data, cur_LBA + i, cur_loop);
+
+			if (!compare_sector(expect_data, wr_data + i * PHYSICAL_SECTOR_SIZE)) {
+				msg.Format(_T("\tFound expect in loop %u and LBA %u\n"), cur_loop, cur_LBA + i);
+				set_log_msg(msg);
+				msg.Format(_T("Sequential W/R Loop: %u, LBA: %u, Size: %u\n"), cur_loop, cur_LBA, wr_sec_num);
+				set_error_msg(msg);
+				diff_cmd(cur_loop, cur_LBA, wr_sec_num, wr_data);
+
+				// abort stortest
+				set_terminate();
+				delete[] wr_data;
+				write_log_file(); // write cmd and error log, ehance the msg buffer is empty
+				CloseHandle(cmd_file_hand);
+				CloseHandle(hDevice);
+				throw std::runtime_error("Find an error pattern. Show in error log.");
+			}
+		}
+
+		cur_LBA += wr_sec_num;
+		cur_LBA_cnt += wr_sec_num;
+
+		delete[] wr_data;
+	}
+
+	return TRUE;
+}
+
+BOOL StorTest::sfun_sequential_b(HANDLE hDevice, WORD cur_loop, STL_RNG stl_rng)
+{
+	CString msg;
+	DWORD cur_LBA;
+	DWORD max_transf_len = selected_device.getMaxTransfLen();
+
+	msg.Format(_T("\tStart loop %5u write/read\n"), cur_loop);
+	set_log_msg(msg);
+
+	cur_LBA = LBA_start;
+	cur_LBA_cnt = 0;
+	while (cur_LBA < LBA_end)
+	{
+		if (if_pause) continue;
+		if (if_terminate) return FALSE;
+
+		DWORD wr_sec_num = stl_rng();
+		// check remain LBA
+		wr_sec_num = (wr_sec_num < (LBA_end - cur_LBA)) ? wr_sec_num : (LBA_end - cur_LBA);
+		DWORD wr_sec_len = wr_sec_num * PHYSICAL_SECTOR_SIZE;
+		BYTE* wr_data = new BYTE[wr_sec_len];
+
+		// get LBA pattern
+		for (DWORD i = 0; i < wr_sec_num; i++) {
+			get_LBA_pattern(wr_data + i * PHYSICAL_SECTOR_SIZE, cur_LBA + i, cur_loop);
+		}
+
+		// wrtie LBA
+		QueryPerformanceCounter(&nBeginTime); // timer begin
+		ULONGLONG cur_LBA_offset = (ULONGLONG)cur_LBA * PHYSICAL_SECTOR_SIZE;
+		if (!SCSISectorIO(hDevice, max_transf_len, cur_LBA_offset, wr_data, wr_sec_len, TRUE)) {
+			TRACE(_T("\n[Error] Write LBA failed. Error Code = %u.\n"), GetLastError());
+			delete[] wr_data;
+			write_log_file(); // write cmd and error log, ehance the msg buffer is empty
+			CloseHandle(cmd_file_hand);
+			CloseHandle(hDevice);
+			throw std::runtime_error("Write LBA failed.");
+		}
+		QueryPerformanceCounter(&nEndTime); // timer end
+		cmd_time = ((double)(nEndTime.QuadPart - nBeginTime.QuadPart) * 1000) / (double)nFreq.QuadPart;
+		msg.Format(_T("Loop %5u Write LBA: %10u~%10u (size: %4u) Elapsed %8.3f ms\n"),
+			cur_loop, cur_LBA, cur_LBA + wr_sec_num - 1, wr_sec_num, cmd_time);
+		set_cmd_msg(msg);
+
+		cur_LBA += wr_sec_num;
+		cur_LBA_cnt += wr_sec_num;
+
+		delete[] wr_data;
+	}
+
+	return TRUE;
+}
+
+BOOL StorTest::sfun_sequential_c(HANDLE hDevice, WORD cur_loop)
+{
+	CString msg;
+	DWORD cur_LBA;
+	DWORD max_transf_len = selected_device.getMaxTransfLen(), max_transfer_sec = selected_device.getMaxTransfSec();
+
+	msg.Format(_T("\tStart loop %5u read\n"), cur_loop);
+	set_log_msg(msg);
+
+	cur_LBA = LBA_start;
+	cur_LBA_cnt = 0;
+	while (cur_LBA < LBA_end)
+	{
+		if (if_pause) continue;
+		if (if_terminate) return FALSE;
+
+		DWORD wr_sec_num = max_transfer_sec;
+		// check remain LBA
+		wr_sec_num = (wr_sec_num < (LBA_end - cur_LBA)) ? wr_sec_num : (LBA_end - cur_LBA);
+		DWORD wr_sec_len = wr_sec_num * PHYSICAL_SECTOR_SIZE;
+		BYTE* wr_data = new BYTE[wr_sec_len];
+
+		// get LBA pattern
+		for (DWORD i = 0; i < wr_sec_num; i++) {
+			get_LBA_pattern(wr_data + i * PHYSICAL_SECTOR_SIZE, cur_LBA + i, cur_loop);
+		}
+
+		// read LBA
+		QueryPerformanceCounter(&nBeginTime); // timer begin
+		ULONGLONG cur_LBA_offset = (ULONGLONG)cur_LBA * PHYSICAL_SECTOR_SIZE;
+		if (!SCSISectorIO(hDevice, max_transf_len, cur_LBA_offset, wr_data, wr_sec_len, FALSE)) {
+			TRACE(_T("\n[Error] Read LBA failed. Error Code = %u.\n"), GetLastError());
+			delete[] wr_data;
+			write_log_file(); // write cmd and error log, ehance the msg buffer is empty
+			CloseHandle(cmd_file_hand);
+			CloseHandle(hDevice);
+			throw std::runtime_error("Read LBA failed.");
+		}
+		QueryPerformanceCounter(&nEndTime); // timer end
+		cmd_time = ((double)(nEndTime.QuadPart - nBeginTime.QuadPart) * 1000) / (double)nFreq.QuadPart;
+		msg.Format(_T("Loop %5u Read LBA:  %10u~%10u (size: %4u) Elapsed %8.3f ms\n"),
+			cur_loop, cur_LBA, cur_LBA + wr_sec_num - 1, wr_sec_num, cmd_time);
+		set_cmd_msg(msg);
+
+		// compare pattern
+		BYTE expect_data[PHYSICAL_SECTOR_SIZE];
+		for (DWORD i = 0; i < wr_sec_num; i++) {
+			get_LBA_pattern(expect_data, cur_LBA + i, cur_loop);
+
+			// Make an error pattern
+			if (cur_LBA + i == 23 && cur_loop == 3) {
+				*(wr_data + i * PHYSICAL_SECTOR_SIZE + 23) = 0xFF;
+				*(wr_data + i * PHYSICAL_SECTOR_SIZE + 0) = 0x01;
+			}
+
+			if (!compare_sector(expect_data, wr_data + i * PHYSICAL_SECTOR_SIZE)) {
+				msg.Format(_T("\tFound expect in loop %u and LBA %u\n"), cur_loop, cur_LBA + i);
+				set_log_msg(msg);
+				msg.Format(_T("Sequential R Loop: %u, LBA: %u, Size: %u\n"), cur_loop, cur_LBA, wr_sec_num);
+				set_error_msg(msg);
+				diff_cmd(cur_loop, cur_LBA, wr_sec_num, wr_data);
+
+				// abort stortest
+				set_terminate();
+				delete[] wr_data;
+				write_log_file(); // write cmd and error log, ehance the msg buffer is empty
+				CloseHandle(cmd_file_hand);
+				CloseHandle(hDevice);
+				throw std::runtime_error("Find an error pattern. Show in error log.");
+			}
+		}
+
+		cur_LBA += wr_sec_num;
+		cur_LBA_cnt += wr_sec_num;
+
+		delete[] wr_data;
+	}
+
+	return TRUE;
+}
+
 BOOL StorTest::fun_sequential_ac()
 {
 	// device information
@@ -168,174 +393,22 @@ BOOL StorTest::fun_sequential_ac()
 		throw std::runtime_error("Open device failed.");
 	}
 
+	// initial random
+	std::random_device rd;
+	RNGInt generator(rd());
+	STL_RNG stl_rng(generator, wr_sector_min, wr_sector_max);
+
 	CString msg;
-	DWORD cur_LBA;
 	for (WORD cur_loop = 0; loop_num == 0 || cur_loop < loop_num; cur_loop++) {
 		// open command log file
 		CString cmd_file_name;
 		cmd_file_name.Format(_T("\\loop%05u_command.txt"), cur_loop);
 		cmd_file_hand = get_file_handle(dir_path + cmd_file_name);
 
-		// initial random
-		std::random_device rd;
-		std::mt19937 generator(rd());
-		std::uniform_int_distribution<int> distribution(wr_sector_min, wr_sector_max);
-
 		// W/R
-		msg.Format(_T("\tStart loop %5u write/read\n"), cur_loop);
-		set_log_msg(msg);
-		cur_LBA = LBA_start;
-		cur_LBA_cnt = 0;
-		while (cur_LBA < LBA_end)
-		{
-			if (if_pause) continue;
-			if (if_terminate) break;
-
-			DWORD wr_sec_num = distribution(generator);
-			// check remain LBA
-			wr_sec_num = (wr_sec_num < (LBA_end - cur_LBA)) ? wr_sec_num : (LBA_end - cur_LBA);
-			DWORD wr_sec_len = wr_sec_num * PHYSICAL_SECTOR_SIZE;
-			BYTE* wr_data = new BYTE[wr_sec_len];
-
-			// get LBA pattern
-			for (DWORD i = 0; i < wr_sec_num; i++) {
-				get_LBA_pattern(wr_data + i * PHYSICAL_SECTOR_SIZE, cur_LBA + i, cur_loop);
-			}
-
-			// wrtie LBA
-			QueryPerformanceCounter(&nBeginTime); // timer begin
-			ULONGLONG cur_LBA_offset = (ULONGLONG)cur_LBA * PHYSICAL_SECTOR_SIZE;
-			if (!SCSISectorIO(hDevice, max_transf_len, cur_LBA_offset, wr_data, wr_sec_len, TRUE)) {
-				TRACE(_T("\n[Error] Write LBA failed. Error Code = %u.\n"), GetLastError());
-				delete[] wr_data;
-				write_log_file(); // write cmd and error log, ehance the msg buffer is empty
-				CloseHandle(cmd_file_hand);
-				CloseHandle(hDevice);
-				throw std::runtime_error("Write LBA failed.");
-			}
-			QueryPerformanceCounter(&nEndTime); // timer end
-			cmd_time = ((double)(nEndTime.QuadPart - nBeginTime.QuadPart) * 1000) / (double)nFreq.QuadPart;
-			msg.Format(_T("Loop %5u Write LBA: %10u~%10u (size: %4u) Elapsed %8.3f ms\n"),
-						cur_loop, cur_LBA, cur_LBA + wr_sec_num - 1, wr_sec_num, cmd_time);
-			set_cmd_msg(msg);
-
-			// read LBA
-			QueryPerformanceCounter(&nBeginTime); // timer begin
-			if (!SCSISectorIO(hDevice, max_transf_len, cur_LBA_offset, wr_data, wr_sec_len, FALSE)) {
-				TRACE(_T("\n[Error] Read LBA failed. Error Code = %u.\n"), GetLastError());
-				delete[] wr_data;
-				write_log_file(); // write cmd and error log, ehance the msg buffer is empty
-				CloseHandle(cmd_file_hand);
-				CloseHandle(hDevice);
-				throw std::runtime_error("Read LBA failed.");
-			}
-			QueryPerformanceCounter(&nEndTime); // timer end
-			cmd_time = ((double)(nEndTime.QuadPart - nBeginTime.QuadPart) * 1000) / (double)nFreq.QuadPart;
-			msg.Format(_T("Loop %5u Read LBA:  %10u~%10u (size: %4u) Elapsed %8.3f ms\n"),
-						cur_loop, cur_LBA, cur_LBA + wr_sec_num - 1, wr_sec_num, cmd_time);
-			set_cmd_msg(msg);
-
-			// compare pattern
-			BYTE expect_data[PHYSICAL_SECTOR_SIZE];
-			for (DWORD i = 0; i < wr_sec_num; i++) {
-				get_LBA_pattern(expect_data, cur_LBA + i, cur_loop);
-
-				if (!compare_sector(expect_data, wr_data + i * PHYSICAL_SECTOR_SIZE)) {
-					msg.Format(_T("\tFound expect in loop %u and LBA %u\n"), cur_loop, cur_LBA + i);
-					set_log_msg(msg);
-					msg.Format(_T("Sequential W/R Loop: %u, LBA: %u, Size: %u\n"), cur_loop, cur_LBA, wr_sec_num);
-					set_error_msg(msg);
-					diff_cmd(cur_loop, cur_LBA, wr_sec_num, wr_data);
-
-					// abort stortest
-					set_terminate();
-					delete[] wr_data;
-					write_log_file(); // write cmd and error log, ehance the msg buffer is empty
-					CloseHandle(cmd_file_hand);
-					CloseHandle(hDevice);
-					throw std::runtime_error("Find an error pattern. Show in error log.");
-				}
-			}
-
-			cur_LBA += wr_sec_num;
-			cur_LBA_cnt += wr_sec_num;
-			
-			delete[] wr_data;
-		}
-		if (if_terminate) break;
-
+		if (!sfun_sequential_a(hDevice, cur_loop, stl_rng)) break;
 		// R
-		msg.Format(_T("\tStart loop %5u read\n"), cur_loop);
-		set_log_msg(msg);
-		cur_LBA = LBA_start;
-		cur_LBA_cnt = 0;
-		while (cur_LBA < LBA_end)
-		{
-			if (if_pause) continue;
-			if (if_terminate) break;
-
-			DWORD wr_sec_num = selected_device.getMaxTransfSec();
-			// check remain LBA
-			wr_sec_num = (wr_sec_num < (LBA_end - cur_LBA)) ? wr_sec_num : (LBA_end - cur_LBA);
-			DWORD wr_sec_len = wr_sec_num * PHYSICAL_SECTOR_SIZE;
-			BYTE* wr_data = new BYTE[wr_sec_len];
-
-			// get LBA pattern
-			for (DWORD i = 0; i < wr_sec_num; i++) {
-				get_LBA_pattern(wr_data + i * PHYSICAL_SECTOR_SIZE, cur_LBA + i, cur_loop);
-			}
-
-			// read LBA
-			QueryPerformanceCounter(&nBeginTime); // timer begin
-			ULONGLONG cur_LBA_offset = (ULONGLONG)cur_LBA * PHYSICAL_SECTOR_SIZE;
-			if (!SCSISectorIO(hDevice, max_transf_len, cur_LBA_offset, wr_data, wr_sec_len, FALSE)) {
-				TRACE(_T("\n[Error] Read LBA failed. Error Code = %u.\n"), GetLastError());
-				delete[] wr_data;
-				write_log_file(); // write cmd and error log, ehance the msg buffer is empty
-				CloseHandle(cmd_file_hand);
-				CloseHandle(hDevice);
-				throw std::runtime_error("Read LBA failed.");
-			}
-			QueryPerformanceCounter(&nEndTime); // timer end
-			cmd_time = ((double)(nEndTime.QuadPart - nBeginTime.QuadPart) * 1000) / (double)nFreq.QuadPart;
-			msg.Format(_T("Loop %5u Read LBA:  %10u~%10u (size: %4u) Elapsed %8.3f ms\n"),
-						cur_loop, cur_LBA, cur_LBA + wr_sec_num - 1, wr_sec_num, cmd_time);
-			set_cmd_msg(msg);
-
-			// compare pattern
-			BYTE expect_data[PHYSICAL_SECTOR_SIZE];
-			for (DWORD i = 0; i < wr_sec_num; i++) {
-				get_LBA_pattern(expect_data, cur_LBA + i, cur_loop);
-
-				// Make an error pattern
-				//if (cur_LBA + i == 23 && cur_loop == 3) {
-				//	*(wr_data + i * PHYSICAL_SECTOR_SIZE + 23) = 0xFF;
-				//	*(wr_data + i * PHYSICAL_SECTOR_SIZE + 0) = 0x01;
-				//}
-
-				if (!compare_sector(expect_data, wr_data + i * PHYSICAL_SECTOR_SIZE)) {
-					msg.Format(_T("\tFound expect in loop %u and LBA %u\n"), cur_loop, cur_LBA + i);
-					set_log_msg(msg);
-					msg.Format(_T("Sequential R Loop: %u, LBA: %u, Size: %u\n"), cur_loop, cur_LBA, wr_sec_num);
-					set_error_msg(msg);
-					diff_cmd(cur_loop, cur_LBA, wr_sec_num, wr_data);
-
-					// abort stortest
-					set_terminate();
-					delete[] wr_data;
-					write_log_file(); // write cmd and error log, ehance the msg buffer is empty
-					CloseHandle(cmd_file_hand);
-					CloseHandle(hDevice);
-					throw std::runtime_error("Find an error pattern. Show in error log.");
-				}
-			}
-
-			cur_LBA += wr_sec_num;
-			cur_LBA_cnt += wr_sec_num;
-
-			delete[] wr_data;
-		}
-		if (if_terminate) break;
+		if (!sfun_sequential_c(hDevice, cur_loop)) break;
 
 		cur_loop_cnt++;
 
@@ -359,136 +432,22 @@ BOOL StorTest::fun_sequential_bc()
 		throw std::runtime_error("Open device failed.");
 	}
 
+	// initial random
+	std::random_device rd;
+	RNGInt generator(rd());
+	STL_RNG stl_rng(generator, wr_sector_min, wr_sector_max);
+
 	CString msg;
-	DWORD cur_LBA;
 	for (WORD cur_loop = 0; loop_num == 0 || cur_loop < loop_num; cur_loop++) {
 		// open command log file
 		CString cmd_file_name;
 		cmd_file_name.Format(_T("\\loop%05u_command.txt"), cur_loop);
 		cmd_file_hand = get_file_handle(dir_path + cmd_file_name);
 
-		// initial random
-		std::random_device rd;
-		std::mt19937 generator(rd());
-		std::uniform_int_distribution<int> distribution(wr_sector_min, wr_sector_max);
-
 		// W
-		msg.Format(_T("\tStart loop %5u write/read\n"), cur_loop);
-		set_log_msg(msg);
-		cur_LBA = LBA_start;
-		cur_LBA_cnt = 0;
-		while (cur_LBA < LBA_end)
-		{
-			if (if_pause) continue;
-			if (if_terminate) break;
-
-			DWORD wr_sec_num = distribution(generator);
-			// check remain LBA
-			wr_sec_num = (wr_sec_num < (LBA_end - cur_LBA)) ? wr_sec_num : (LBA_end - cur_LBA);
-			DWORD wr_sec_len = wr_sec_num * PHYSICAL_SECTOR_SIZE;
-			BYTE* wr_data = new BYTE[wr_sec_len];
-
-			// get LBA pattern
-			for (DWORD i = 0; i < wr_sec_num; i++) {
-				get_LBA_pattern(wr_data + i * PHYSICAL_SECTOR_SIZE, cur_LBA + i, cur_loop);
-			}
-
-			// wrtie LBA
-			QueryPerformanceCounter(&nBeginTime); // timer begin
-			ULONGLONG cur_LBA_offset = (ULONGLONG)cur_LBA * PHYSICAL_SECTOR_SIZE;
-			if (!SCSISectorIO(hDevice, max_transf_len, cur_LBA_offset, wr_data, wr_sec_len, TRUE)) {
-				TRACE(_T("\n[Error] Write LBA failed. Error Code = %u.\n"), GetLastError());
-				delete[] wr_data;
-				write_log_file(); // write cmd and error log, ehance the msg buffer is empty
-				CloseHandle(cmd_file_hand);
-				CloseHandle(hDevice);
-				throw std::runtime_error("Write LBA failed.");
-			}
-			QueryPerformanceCounter(&nEndTime); // timer end
-			cmd_time = ((double)(nEndTime.QuadPart - nBeginTime.QuadPart) * 1000) / (double)nFreq.QuadPart;
-			msg.Format(_T("Loop %5u Write LBA: %10u~%10u (size: %4u) Elapsed %8.3f ms\n"),
-				cur_loop, cur_LBA, cur_LBA + wr_sec_num - 1, wr_sec_num, cmd_time);
-			set_cmd_msg(msg);
-
-			cur_LBA += wr_sec_num;
-			cur_LBA_cnt += wr_sec_num;
-
-			delete[] wr_data;
-		}
-		if (if_terminate) break;
-
+		if (!sfun_sequential_b(hDevice, cur_loop, stl_rng)) break;
 		// R
-		msg.Format(_T("\tStart loop %5u read\n"), cur_loop);
-		set_log_msg(msg);
-		cur_LBA = LBA_start;
-		cur_LBA_cnt = 0;
-		while (cur_LBA < LBA_end)
-		{
-			if (if_pause) continue;
-			if (if_terminate) break;
-
-			DWORD wr_sec_num = selected_device.getMaxTransfSec();
-			// check remain LBA
-			wr_sec_num = (wr_sec_num < (LBA_end - cur_LBA)) ? wr_sec_num : (LBA_end - cur_LBA);
-			DWORD wr_sec_len = wr_sec_num * PHYSICAL_SECTOR_SIZE;
-			BYTE* wr_data = new BYTE[wr_sec_len];
-
-			// get LBA pattern
-			for (DWORD i = 0; i < wr_sec_num; i++) {
-				get_LBA_pattern(wr_data + i * PHYSICAL_SECTOR_SIZE, cur_LBA + i, cur_loop);
-			}
-
-			// read LBA
-			QueryPerformanceCounter(&nBeginTime); // timer begin
-			ULONGLONG cur_LBA_offset = (ULONGLONG)cur_LBA * PHYSICAL_SECTOR_SIZE;
-			if (!SCSISectorIO(hDevice, max_transf_len, cur_LBA_offset, wr_data, wr_sec_len, FALSE)) {
-				TRACE(_T("\n[Error] Read LBA failed. Error Code = %u.\n"), GetLastError());
-				delete[] wr_data;
-				write_log_file(); // write cmd and error log, ehance the msg buffer is empty
-				CloseHandle(cmd_file_hand);
-				CloseHandle(hDevice);
-				throw std::runtime_error("Read LBA failed.");
-			}
-			QueryPerformanceCounter(&nEndTime); // timer end
-			cmd_time = ((double)(nEndTime.QuadPart - nBeginTime.QuadPart) * 1000) / (double)nFreq.QuadPart;
-			msg.Format(_T("Loop %5u Read LBA:  %10u~%10u (size: %4u) Elapsed %8.3f ms\n"),
-				cur_loop, cur_LBA, cur_LBA + wr_sec_num - 1, wr_sec_num, cmd_time);
-			set_cmd_msg(msg);
-
-			// compare pattern
-			BYTE expect_data[PHYSICAL_SECTOR_SIZE];
-			for (DWORD i = 0; i < wr_sec_num; i++) {
-				get_LBA_pattern(expect_data, cur_LBA + i, cur_loop);
-
-				// Make an error pattern
-				//if (cur_LBA + i == 23 && cur_loop == 3) {
-				//	*(wr_data + i * PHYSICAL_SECTOR_SIZE + 23) = 0xFF;
-				//	*(wr_data + i * PHYSICAL_SECTOR_SIZE + 0) = 0x01;
-				//}
-
-				if (!compare_sector(expect_data, wr_data + i * PHYSICAL_SECTOR_SIZE)) {
-					msg.Format(_T("\tFound expect in loop %u and LBA %u\n"), cur_loop, cur_LBA + i);
-					set_log_msg(msg);
-					msg.Format(_T("Sequential R Loop: %u, LBA: %u, Size: %u\n"), cur_loop, cur_LBA, wr_sec_num);
-					set_error_msg(msg);
-					diff_cmd(cur_loop, cur_LBA, wr_sec_num, wr_data);
-
-					// abort stortest
-					set_terminate();
-					delete[] wr_data;
-					write_log_file(); // write cmd and error log, ehance the msg buffer is empty
-					CloseHandle(cmd_file_hand);
-					CloseHandle(hDevice);
-					throw std::runtime_error("Find an error pattern. Show in error log.");
-				}
-			}
-
-			cur_LBA += wr_sec_num;
-			cur_LBA_cnt += wr_sec_num;
-
-			delete[] wr_data;
-		}
-		if (if_terminate) break;
+		if (!sfun_sequential_c(hDevice, cur_loop)) break;
 
 		cur_loop_cnt++;
 
