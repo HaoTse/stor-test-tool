@@ -19,8 +19,11 @@
 #define IDC_cur_loop_edit_2             1012
 #define IDC_tot_loop_edit_1             1013
 #define IDC_tot_loop_edit_2             1014
+#define IDC_test_length_per_loop        1015
 #define IDC_pause_btn                   1016
 #define IDC_stop_btn                    1017
+#define IDC_Loop_num3                   1018
+#define IDC_test_loop_per_verify_all    1018
 
 // Next default values for new objects
 // 

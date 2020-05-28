@@ -22,6 +22,7 @@ private:
 	// setup parameters
 	Device selected_device;
 	DWORD function_idx{ 0 }, LBA_start{ 0 }, LBA_end{ 0 }, wr_sector_min{ 0 }, wr_sector_max{ 0 };
+	DWORD test_len_pro_loop{ 0 }, test_loop_per_verify_all{ 0 };
 	WORD loop_num{ 0 };
 
 	// control progress bar
@@ -51,11 +52,12 @@ private:
 	
 	BOOL compare_sector(BYTE* expect_buf, BYTE* read_buf);
 	void diff_cmd(WORD loop, DWORD start_LBA, DWORD cmd_length, BYTE* read_buf);
+	void diff_cmd(WORD* loop_map, DWORD start_LBA, DWORD cmd_length, BYTE* read_buf);
 
 	HANDLE get_file_handle(CString file_path);
 
 	BOOL sfun_sequential_a(HANDLE hDevice, WORD cur_loop, STL_RNG stl_rng);
-	BOOL sfun_sequential_b(HANDLE hDevice, WORD cur_loop, STL_RNG stl_rng);
+	BOOL sfun_sequential_b(HANDLE hDevice, WORD cur_loop, STL_RNG stl_rng, BOOL use_max = FALSE);
 	BOOL sfun_sequential_c(HANDLE hDevice, WORD cur_loop);
 	BOOL sfun_reverse_a(HANDLE hDevice, WORD cur_loop, STL_RNG stl_rng);
 	BOOL sfun_reverse_b(HANDLE hDevice, WORD cur_loop, STL_RNG stl_rng);
@@ -72,7 +74,8 @@ private:
 	BOOL fun_varyzone();
 
 public:
-	StorTest(Device dev, DWORD fun_idx, DWORD start, DWORD end, DWORD smin, DWORD smax, WORD loopn);
+	StorTest(Device dev, DWORD fun_idx, DWORD start, DWORD end, DWORD smin, DWORD smax, WORD loopn,
+			DWORD varyzone_tlen, DWORD varyzone_vall);
 	BOOL run();
 
 	BOOL open_log_dir();
@@ -87,4 +90,5 @@ public:
 	BOOL get_terminate();
 	void set_pause(bool setup);
 	BOOL get_pause();
+
 };

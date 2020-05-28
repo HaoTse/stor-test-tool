@@ -52,6 +52,8 @@ void CStorTestToolDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_pause_btn, pause_btn_ctrl);
 	DDX_Control(pDX, IDC_stop_btn, stop_btn_ctrl);
 	DDX_Control(pDX, IDCANCEL, cancel_btn_ctrl);
+	DDX_Control(pDX, IDC_test_length_per_loop, varyzone_len_ploop_edit_ctrl);
+	DDX_Control(pDX, IDC_test_loop_per_verify_all, varyzone_verify_all_loop_edit_ctrl);
 }
 
 BEGIN_MESSAGE_MAP(CStorTestToolDlg, CDialogEx)
@@ -162,6 +164,15 @@ void CStorTestToolDlg::OnCbnSelchangeFunction()
 	else {
 		loop_num_ctrl.EnableWindow(TRUE);
 	}
+
+	if (function_idx == 7) {
+		varyzone_len_ploop_edit_ctrl.EnableWindow(TRUE);
+		varyzone_verify_all_loop_edit_ctrl.EnableWindow(TRUE);
+	}
+	else {
+		varyzone_len_ploop_edit_ctrl.EnableWindow(FALSE);
+		varyzone_verify_all_loop_edit_ctrl.EnableWindow(FALSE);
+	}
 }
 
 
@@ -269,10 +280,10 @@ void CStorTestToolDlg::OnBnClickedRun()
 		return;
 	}
 	if (wr_sector_min > wr_sector_max) {
-		MessageBox(_T("The minimum of Write/Read sector cannot larger than the Maximum."), _T("Error"), MB_ICONERROR);
+		MessageBox(_T("The minimum of Write/Read sector cannot be larger than the Maximum."), _T("Error"), MB_ICONERROR);
 		return;
 	}
-	if (LBA_end >= selected_device.getCapacitySec()) {
+	if (LBA_end > selected_device.getCapacitySec()) {
 		tmp.Format(_T("Total number of sectors: %u"), selected_device.getCapacitySec());
 		MessageBox(tmp, _T("Error"), MB_ICONERROR);
 		return;
@@ -289,7 +300,43 @@ void CStorTestToolDlg::OnBnClickedRun()
 
 	tot_LBA_num = LBA_end - LBA_start;
 	tot_loop_num = (function_idx == 5) ? 1 : loop_num;
-	stortest = new StorTest(selected_device, function_idx, LBA_start, LBA_end, wr_sector_min, wr_sector_max, loop_num);
+
+	DWORD test_len_pro_loop = 0, test_loop_per_verify_all = 0;
+	if (function_idx == 7) {
+		loop_num++; // include a sequential b+c loop
+
+		varyzone_len_ploop_edit_ctrl.GetWindowText(tmp);
+		if (tmp.IsEmpty()) {
+			MessageBox(_T("Must set TestLengthPerLoop."), _T("Error"), MB_ICONERROR);
+			return;
+		}
+		test_len_pro_loop = _ttoi(tmp);
+		varyzone_verify_all_loop_edit_ctrl.GetWindowText(tmp);
+		if (tmp.IsEmpty()) {
+			MessageBox(_T("Must set TestLoopPerVerifyAll."), _T("Error"), MB_ICONERROR);
+			return;
+		}
+		test_loop_per_verify_all = _ttoi(tmp);
+
+		if (test_len_pro_loop >= (1 << 16)) {
+			MessageBox(_T("The size of loop number is only 2Bytes."), _T("Error"), MB_ICONERROR);
+			return;
+		}
+		if (test_loop_per_verify_all == 0) {
+			MessageBox(_T("TestLoopPerVerifyAll cannot be 0."), _T("Error"), MB_ICONERROR);
+			return;
+		}
+		if (test_loop_per_verify_all > loop_num && loop_num != 1) {
+			MessageBox(_T("TestLoopPerVerifyAll cannot be larger than the loop number."), _T("Error"), MB_ICONERROR);
+			return;
+		}
+
+		// set progress bar range end
+		tot_LBA_num = test_len_pro_loop;
+	}
+
+	stortest = new StorTest(selected_device, function_idx, LBA_start, LBA_end, wr_sector_min, wr_sector_max, loop_num,
+						test_len_pro_loop, test_loop_per_verify_all);
 
 	// check log directory
 	if (!stortest->open_log_dir()) {

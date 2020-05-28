@@ -72,4 +72,6 @@ public:
 	CButton pause_btn_ctrl;
 	CButton stop_btn_ctrl;
 	CButton cancel_btn_ctrl;
+	CEdit varyzone_len_ploop_edit_ctrl;
+	CEdit varyzone_verify_all_loop_edit_ctrl;
 };
