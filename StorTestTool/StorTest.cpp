@@ -604,6 +604,81 @@ BOOL StorTest::sfun_reverse_c(HANDLE hDevice, WORD cur_loop)
 	return TRUE;
 }
 
+BOOL StorTest::sfun_verify_c(HANDLE hDevice, WORD cur_loop)
+{
+	CString msg;
+	DWORD cur_LBA;
+	DWORD max_transf_len = selected_device.getMaxTransfLen(), max_transfer_sec = selected_device.getMaxTransfSec();
+
+	msg.Format(_T("\tStart loop %5u sequential read\n"), cur_loop);
+	set_log_msg(msg);
+
+	cur_LBA = LBA_start;
+	cur_LBA_cnt = 0;
+	while (cur_LBA < LBA_end)
+	{
+		if (if_pause) continue;
+		if (if_terminate) return FALSE;
+
+		WORD pattern_loop;
+		DWORD wr_sec_num = max_transfer_sec;
+		// check remain LBA
+		wr_sec_num = (wr_sec_num < (LBA_end - cur_LBA)) ? wr_sec_num : (LBA_end - cur_LBA);
+		DWORD wr_sec_len = wr_sec_num * PHYSICAL_SECTOR_SIZE;
+		BYTE* wr_data = new BYTE[wr_sec_len];
+
+		// read LBA
+		QueryPerformanceCounter(&nBeginTime); // timer begin
+		ULONGLONG cur_LBA_offset = (ULONGLONG)cur_LBA * PHYSICAL_SECTOR_SIZE;
+		if (!SCSISectorIO(hDevice, max_transf_len, cur_LBA_offset, wr_data, wr_sec_len, FALSE)) {
+			TRACE(_T("\n[Error] Read LBA failed. Error Code = %u.\n"), GetLastError());
+			delete[] wr_data;
+			write_log_file(); // write cmd and error log, ehance the msg buffer is empty
+			CloseHandle(cmd_file_hand);
+			CloseHandle(hDevice);
+			throw std::runtime_error("Read LBA failed.");
+		}
+		QueryPerformanceCounter(&nEndTime); // timer end
+		cmd_time = ((double)(nEndTime.QuadPart - nBeginTime.QuadPart) * 1000) / (double)nFreq.QuadPart;
+		msg.Format(_T("Loop %5u Read LBA:  %10u~%10u (size: %4u) Elapsed %8.3f ms\n"),
+			cur_loop, cur_LBA, cur_LBA + wr_sec_num - 1, wr_sec_num, cmd_time);
+		set_cmd_msg(msg);
+
+		// compare pattern
+		BYTE expect_data[PHYSICAL_SECTOR_SIZE];
+		for (DWORD i = 0; i < wr_sec_num; i++) {
+			// get pattern loop num
+			DWORD loop_offset = i * PHYSICAL_SECTOR_SIZE + 16;
+			pattern_loop = ((WORD)(*(wr_data + loop_offset)) >> 8) + *(wr_data + loop_offset + 1);
+
+			get_LBA_pattern(expect_data, cur_LBA + i, pattern_loop);
+
+			if (!compare_sector(expect_data, wr_data + i * PHYSICAL_SECTOR_SIZE)) {
+				msg.Format(_T("\tFound expect in loop %u and LBA %u\n"), cur_loop, cur_LBA + i);
+				set_log_msg(msg);
+				msg.Format(_T("Verify R Loop: %u, LBA: %u, Size: %u\n"), cur_loop, cur_LBA, wr_sec_num);
+				set_error_msg(msg);
+				diff_cmd(pattern_loop, cur_LBA, wr_sec_num, wr_data);
+
+				// abort stortest
+				set_terminate();
+				delete[] wr_data;
+				write_log_file(); // write cmd and error log, ehance the msg buffer is empty
+				CloseHandle(cmd_file_hand);
+				CloseHandle(hDevice);
+				throw std::runtime_error("Find an error pattern. Show in error log.");
+			}
+		}
+
+		cur_LBA += wr_sec_num;
+		cur_LBA_cnt += wr_sec_num;
+
+		delete[] wr_data;
+	}
+
+	return TRUE;
+}
+
 BOOL StorTest::fun_sequential_ac()
 {
 	// device information
@@ -906,6 +981,33 @@ BOOL StorTest::fun_onewrite()
 
 BOOL StorTest::fun_verify()
 {
+	// device information
+	HANDLE hDevice = selected_device.openDevice();
+	DWORD max_transf_len = selected_device.getMaxTransfLen();
+	if (hDevice == INVALID_HANDLE_VALUE) {
+		TRACE(_T("\n[Error] Open device failed. Error Code = %u.\n"), GetLastError());
+		CloseHandle(hDevice);
+		throw std::runtime_error("Open device failed.");
+	}
+
+	CString msg;
+	for (WORD cur_loop = 0; loop_num == 0 || cur_loop < loop_num; cur_loop++) {
+		// open command log file
+		CString cmd_file_name;
+		cmd_file_name.Format(_T("\\loop%05u_command.txt"), cur_loop);
+		cmd_file_hand = get_file_handle(dir_path + cmd_file_name);
+
+		// R
+		if (!sfun_verify_c(hDevice, cur_loop)) break;
+
+		cur_loop_cnt++;
+
+		write_log_file(); // write cmd and error log, ehance the msg buffer is empty
+		CloseHandle(cmd_file_hand);
+	}
+
+	CloseHandle(hDevice);
+
 	return TRUE;
 }
 
