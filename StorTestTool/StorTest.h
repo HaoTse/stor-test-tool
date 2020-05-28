@@ -57,6 +57,9 @@ private:
 	BOOL sfun_sequential_a(HANDLE hDevice, WORD cur_loop, STL_RNG stl_rng);
 	BOOL sfun_sequential_b(HANDLE hDevice, WORD cur_loop, STL_RNG stl_rng);
 	BOOL sfun_sequential_c(HANDLE hDevice, WORD cur_loop);
+	BOOL sfun_reverse_a(HANDLE hDevice, WORD cur_loop, STL_RNG stl_rng);
+	BOOL sfun_reverse_b(HANDLE hDevice, WORD cur_loop, STL_RNG stl_rng);
+	BOOL sfun_reverse_c(HANDLE hDevice, WORD cur_loop);
 
 	BOOL fun_sequential_ac();
 	BOOL fun_sequential_bc();
