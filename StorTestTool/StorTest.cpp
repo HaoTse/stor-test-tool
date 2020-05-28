@@ -163,7 +163,7 @@ BOOL StorTest::sfun_sequential_a(HANDLE hDevice, WORD cur_loop, STL_RNG stl_rng)
 	DWORD cur_LBA;
 	DWORD max_transf_len = selected_device.getMaxTransfLen();
 
-	msg.Format(_T("\tStart loop %5u write/read\n"), cur_loop);
+	msg.Format(_T("\tStart loop %5u sequential write/read\n"), cur_loop);
 	set_log_msg(msg);
 
 	cur_LBA = LBA_start;
@@ -254,7 +254,7 @@ BOOL StorTest::sfun_sequential_b(HANDLE hDevice, WORD cur_loop, STL_RNG stl_rng)
 	DWORD cur_LBA;
 	DWORD max_transf_len = selected_device.getMaxTransfLen();
 
-	msg.Format(_T("\tStart loop %5u write/read\n"), cur_loop);
+	msg.Format(_T("\tStart loop %5u sequential write\n"), cur_loop);
 	set_log_msg(msg);
 
 	cur_LBA = LBA_start;
@@ -307,7 +307,7 @@ BOOL StorTest::sfun_sequential_c(HANDLE hDevice, WORD cur_loop)
 	DWORD cur_LBA;
 	DWORD max_transf_len = selected_device.getMaxTransfLen(), max_transfer_sec = selected_device.getMaxTransfSec();
 
-	msg.Format(_T("\tStart loop %5u read\n"), cur_loop);
+	msg.Format(_T("\tStart loop %5u sequential read\n"), cur_loop);
 	set_log_msg(msg);
 
 	cur_LBA = LBA_start;
@@ -388,7 +388,7 @@ BOOL StorTest::sfun_reverse_a(HANDLE hDevice, WORD cur_loop, STL_RNG stl_rng)
 	DWORD cur_LBA;
 	DWORD max_transf_len = selected_device.getMaxTransfLen();
 
-	msg.Format(_T("\tStart loop %5u write/read\n"), cur_loop);
+	msg.Format(_T("\tStart loop %5u reverse write/read\n"), cur_loop);
 	set_log_msg(msg);
 
 	cur_LBA = LBA_end;
@@ -480,7 +480,7 @@ BOOL StorTest::sfun_reverse_b(HANDLE hDevice, WORD cur_loop, STL_RNG stl_rng)
 	DWORD cur_LBA;
 	DWORD max_transf_len = selected_device.getMaxTransfLen();
 
-	msg.Format(_T("\tStart loop %5u write/read\n"), cur_loop);
+	msg.Format(_T("\tStart loop %5u reverse write\n"), cur_loop);
 	set_log_msg(msg);
 
 	cur_LBA = LBA_end;
@@ -534,7 +534,7 @@ BOOL StorTest::sfun_reverse_c(HANDLE hDevice, WORD cur_loop)
 	DWORD cur_LBA;
 	DWORD max_transf_len = selected_device.getMaxTransfLen(), max_transfer_sec = selected_device.getMaxTransfSec();
 
-	msg.Format(_T("\tStart loop %5u read\n"), cur_loop);
+	msg.Format(_T("\tStart loop %5u reverse read\n"), cur_loop);
 	set_log_msg(msg);
 
 	cur_LBA = LBA_end;
@@ -762,6 +762,74 @@ BOOL StorTest::fun_reverse_bc()
 
 BOOL StorTest::fun_testmode()
 {
+	// device information
+	HANDLE hDevice = selected_device.openDevice();
+	DWORD max_transf_len = selected_device.getMaxTransfLen();
+	if (hDevice == INVALID_HANDLE_VALUE) {
+		TRACE(_T("\n[Error] Open device failed. Error Code = %u.\n"), GetLastError());
+		CloseHandle(hDevice);
+		throw std::runtime_error("Open device failed.");
+	}
+
+	// initial random
+	std::random_device rd;
+	RNGInt generator(rd());
+	STL_RNG stl_rng(generator, wr_sector_min, wr_sector_max);
+
+	CString msg;
+	for (WORD cur_loop = 0; loop_num == 0 || cur_loop < loop_num;) {
+		// sequential a+c
+		// open command log file
+		CString cmd_file_name;
+		cmd_file_name.Format(_T("\\loop%05u_command.txt"), cur_loop);
+		cmd_file_hand = get_file_handle(dir_path + cmd_file_name);
+
+		// W/R
+		if (!sfun_sequential_a(hDevice, cur_loop, stl_rng)) break;
+		// R
+		if (!sfun_sequential_c(hDevice, cur_loop)) break;
+		
+		cur_loop++;
+		cur_loop_cnt++;
+
+		write_log_file(); // write cmd and error log, ehance the msg buffer is empty
+		CloseHandle(cmd_file_hand);
+
+		// reverse a+c
+		// open command log file
+		cmd_file_name.Format(_T("\\loop%05u_command.txt"), cur_loop);
+		cmd_file_hand = get_file_handle(dir_path + cmd_file_name);
+
+		// W/R
+		if (!sfun_reverse_a(hDevice, cur_loop, stl_rng)) break;
+		// R
+		if (!sfun_reverse_c(hDevice, cur_loop)) break;
+
+		cur_loop++;
+		cur_loop_cnt++;
+
+		write_log_file(); // write cmd and error log, ehance the msg buffer is empty
+		CloseHandle(cmd_file_hand);
+
+		// sequential b+c
+		// open command log file
+		cmd_file_name.Format(_T("\\loop%05u_command.txt"), cur_loop);
+		cmd_file_hand = get_file_handle(dir_path + cmd_file_name);
+
+		// W/R
+		if (!sfun_sequential_b(hDevice, cur_loop, stl_rng)) break;
+		// R
+		if (!sfun_sequential_c(hDevice, cur_loop)) break;
+
+		cur_loop++;
+		cur_loop_cnt++;
+
+		write_log_file(); // write cmd and error log, ehance the msg buffer is empty
+		CloseHandle(cmd_file_hand);
+	}
+
+	CloseHandle(hDevice);
+
 	return TRUE;
 }
 

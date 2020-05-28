@@ -244,6 +244,13 @@ void CStorTestToolDlg::OnBnClickedRun()
 		return;
 	}
 	loop_num = _ttoi(tmp);
+	if (function_idx == 4) {
+		if (loop_num * 3 >= (1 << 16)) {
+			MessageBox(_T("The size of total loop number (3 times the loop number in Testmode) is only 2Bytes."), _T("Error"), MB_ICONERROR);
+			return;
+		}
+		loop_num = loop_num * 3;
+	}
 
 	TRACE(_T("\n[Msg] Device selected: %c:\n"
 				"[Msg] Function selected: %s\n"
