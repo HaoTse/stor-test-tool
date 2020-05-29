@@ -9,8 +9,8 @@
 #include "utils.h"
 
 
-StorTest::StorTest(Device dev, DWORD fun_idx, DWORD start, DWORD end, DWORD smin, DWORD smax, WORD loopn, 
-					DWORD varyzone_tlen, DWORD varyzone_vall) :
+StorTest::StorTest(Device dev, DWORD fun_idx, DWORD start, DWORD end, DWORD smin, DWORD smax, WORD loopn,
+	DWORD varyzone_tlen, DWORD varyzone_vall) :
 	selected_device(dev), function_idx(fun_idx), LBA_start(start), LBA_end(end),
 	wr_sector_min(smin), wr_sector_max(smax), loop_num(loopn),
 	test_len_pro_loop{ varyzone_tlen }, test_loop_per_verify_all{ varyzone_vall }
@@ -34,12 +34,14 @@ void StorTest::close_hDevice()
 
 void StorTest::dec_in_hex(BYTE* hex_byte, DWORD num)
 {
-	ULONGLONG num_hex;
-	std::stringstream ss;
-	std::string s = std::to_string(num);
+	ULONGLONG num_hex = 0, hex_cnt = 1;
+	DWORD tmp_num = num;
 
-	ss << std::hex << s;
-	ss >> num_hex;
+	while (tmp_num > 0) {
+		num_hex += (ULONGLONG)(tmp_num % 10) * hex_cnt;
+		tmp_num /= 10;
+		hex_cnt = hex_cnt << 4;
+	}
 
 	for (int i = 0; i < 8; i++) {
 		hex_byte[7 - i] = (BYTE)(num_hex >> (i * 8));
@@ -900,7 +902,7 @@ BOOL StorTest::fun_testmode()
 		if (!sfun_sequential_a(hDevice, cur_loop, stl_rng)) break;
 		// R
 		if (!sfun_sequential_c(hDevice, cur_loop)) break;
-		
+
 		cur_loop++;
 		cur_loop_cnt++;
 
@@ -994,7 +996,7 @@ BOOL StorTest::fun_onewrite()
 
 		cur_LBA += wr_sec_num;
 		cur_LBA_cnt += wr_sec_num;
-		
+
 		delete[] wr_data;
 	}
 	cur_loop_cnt += 1;
@@ -1033,7 +1035,7 @@ BOOL StorTest::fun_varyzone()
 	RNGInt generator(rd());
 	STL_RNG wr_sec_rng(generator, wr_sector_min, wr_sector_max);
 	STL_RNG begin_LBA_rng(generator, LBA_start, LBA_end - 1);
-	
+
 	CString msg;
 	// record LBA and loop
 	WORD* LBA_loop_map;
@@ -1044,14 +1046,14 @@ BOOL StorTest::fun_varyzone()
 	CString cmd_file_name;
 	cmd_file_name.Format(_T("\\loop%05u_command.txt"), 0);
 	cmd_file_hand = get_file_handle(dir_path + cmd_file_name);
-	
+
 	// W
 	if (!sfun_sequential_b(hDevice, 0, wr_sec_rng, TRUE)) {
 		delete[] LBA_loop_map;
 		close_hDevice();
 		return TRUE;
 	}
-	
+
 	// update loop map
 	memset(LBA_loop_map, 0, (LBA_end - LBA_start) * 2);
 
@@ -1061,7 +1063,7 @@ BOOL StorTest::fun_varyzone()
 		close_hDevice();
 		return TRUE;
 	}
-	
+
 	cur_loop_cnt++;
 	write_log_file(); // write cmd and error log, ehance the msg buffer is empty
 	CloseHandle(cmd_file_hand);
@@ -1399,10 +1401,10 @@ BOOL StorTest::open_log_dir()
 {
 	CString function_folder_map[8] = { _T("Seq(wr+r)"), _T("Seq(w+r)"),
 								_T("Rev(wr+r)"), _T("Rev(w+r)"),
-								_T("Testmode"), _T("Onewrite"), _T("Verify"), _T("Varyzone")};
-	
+								_T("Testmode"), _T("Onewrite"), _T("Verify"), _T("Varyzone") };
+
 	dir_path.Format(_T("D:\\stortest_log\\%s_LBA_%010u_%010u_wr_%04u_%04u_loop_%05u"),
-					function_folder_map[function_idx], LBA_start, LBA_end, wr_sector_min, wr_sector_max, loop_num);
+		function_folder_map[function_idx], LBA_start, LBA_end, wr_sector_min, wr_sector_max, loop_num);
 
 	if (dirExists(dir_path)) {
 		TRACE(_T("\n[Error] Log directory exists.\n"));
@@ -1413,7 +1415,7 @@ BOOL StorTest::open_log_dir()
 
 	// open error log file
 	error_file_hand = get_file_handle(dir_path + CString(_T("\\error.txt")));
-	
+
 	return TRUE;
 }
 
