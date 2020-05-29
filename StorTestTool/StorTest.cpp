@@ -15,6 +15,9 @@ StorTest::StorTest(Device dev, DWORD fun_idx, DWORD start, DWORD end, DWORD smin
 	wr_sector_min(smin), wr_sector_max(smax), loop_num(loopn),
 	test_len_pro_loop{ varyzone_tlen }, test_loop_per_verify_all{ varyzone_vall }
 {
+	// initial progress end
+	progress_bar_end = LBA_end - LBA_start;
+
 	QueryPerformanceFrequency(&nFreq);
 }
 
@@ -1064,7 +1067,6 @@ BOOL StorTest::fun_varyzone()
 		return TRUE;
 	}
 
-	cur_loop_cnt++;
 	write_log_file(); // write cmd and error log, ehance the msg buffer is empty
 	CloseHandle(cmd_file_hand);
 
@@ -1072,6 +1074,9 @@ BOOL StorTest::fun_varyzone()
 	DWORD max_transf_len = selected_device.getMaxTransfLen();
 	DWORD write_LBA;
 	for (WORD cur_loop = 1; loop_num == 1 || cur_loop < loop_num; cur_loop++) {
+		// update progress bar end to test length
+		progress_bar_end = test_len_pro_loop;
+
 		// open command log file
 		CString cmd_file_name;
 		cmd_file_name.Format(_T("\\loop%05u_command.txt"), cur_loop);
@@ -1250,6 +1255,9 @@ BOOL StorTest::fun_varyzone()
 
 		// verify all
 		if (cur_loop % test_loop_per_verify_all == 0) {
+			// update progress bar end
+			progress_bar_end = LBA_end - LBA_start;
+
 			msg.Format(_T("\tStart loop %5u varyzone verifyall\n"), cur_loop);
 			set_log_msg(msg);
 
@@ -1257,6 +1265,7 @@ BOOL StorTest::fun_varyzone()
 			DWORD max_transf_len = selected_device.getMaxTransfLen(), max_transfer_sec = selected_device.getMaxTransfSec();
 
 			cur_LBA = LBA_start;
+			cur_LBA_cnt = 0;
 			while (cur_LBA < LBA_end)
 			{
 				if (if_pause) continue;
@@ -1312,6 +1321,7 @@ BOOL StorTest::fun_varyzone()
 				}
 
 				cur_LBA += wr_sec_num;
+				cur_LBA_cnt += wr_sec_num;
 
 				delete[] wr_data;
 			}
@@ -1495,4 +1505,22 @@ void StorTest::set_pause(bool setup)
 BOOL StorTest::get_pause()
 {
 	return if_pause;
+}
+
+DWORD StorTest::get_progress_bar_end()
+{
+	return progress_bar_end;
+}
+
+DWORD StorTest::get_progress_bar_scale()
+{
+	DWORD progress_scale = 16;
+	for (int i = 0; i <= 4; i++) {
+		if ((progress_bar_end >> (i * 4)) < (1 << 16)) {
+			progress_scale = i * 4;
+			break;
+		}
+	}
+
+	return progress_scale;
 }

@@ -27,6 +27,7 @@ private:
 	HANDLE hDevice{ NULL };
 
 	// control progress bar
+	std::atomic_uint progress_bar_end{ 0 };
 	std::atomic_uint cur_LBA_cnt{ 0 }, cur_loop_cnt{ 0 };
 	std::atomic_bool if_terminate{ FALSE }, if_pause{ FALSE };
 
@@ -94,4 +95,6 @@ public:
 	void set_pause(bool setup);
 	BOOL get_pause();
 
+	DWORD get_progress_bar_end();
+	DWORD get_progress_bar_scale();
 };

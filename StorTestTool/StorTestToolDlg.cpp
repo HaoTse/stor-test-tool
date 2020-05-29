@@ -263,13 +263,6 @@ void CStorTestToolDlg::OnBnClickedRun()
 		loop_num = loop_num * 3;
 	}
 
-	TRACE(_T("\n[Msg] Device selected: %c:\n"
-				"[Msg] Function selected: %s\n"
-				"[Msg] Setup: {LBA range: %u~%u; write/read sector range: %u~%u, loop number: %u}\n"),
-				selected_device.getIdent(), 
-				function_map[function_idx], 
-				LBA_start, LBA_end, wr_sector_min, wr_sector_max, loop_num);
-
 	// check value
 	if (LBA_start >= LBA_end) {
 		MessageBox(_T("The start LBA must smaller than the end LBA."), _T("Error"), MB_ICONERROR);
@@ -318,7 +311,7 @@ void CStorTestToolDlg::OnBnClickedRun()
 		}
 		test_loop_per_verify_all = _ttoi(tmp);
 
-		if (test_len_pro_loop >= (1 << 16)) {
+		if (test_loop_per_verify_all >= (1 << 16)) {
 			MessageBox(_T("The size of loop number is only 2Bytes."), _T("Error"), MB_ICONERROR);
 			return;
 		}
@@ -330,9 +323,6 @@ void CStorTestToolDlg::OnBnClickedRun()
 			MessageBox(_T("TestLoopPerVerifyAll cannot be larger than the loop number."), _T("Error"), MB_ICONERROR);
 			return;
 		}
-
-		// set progress bar range end
-		tot_LBA_num = test_len_pro_loop;
 	}
 
 	stortest = new StorTest(selected_device, function_idx, LBA_start, LBA_end, wr_sector_min, wr_sector_max, loop_num,
@@ -387,12 +377,14 @@ void CStorTestToolDlg::update_progress()
 			break;
 		}
 	}
+
 	// set progress bar static text
 	CString str;
 	str.Format(_T("%u"), tot_LBA_cnt);
 	cur_loop_edit2_ctrl.SetWindowText(str);
 	str.Format(_T("%u"), tot_loop_cnt);
 	tot_loop_edit2_ctrl.SetWindowText(str);
+	// initial progress bar range
 	cur_loop_ctrl.SetRange(0, (short)(tot_LBA_cnt >> progress_scale));
 	tot_loop_ctrl.SetRange(0, (short)(tot_loop_cnt));
 
@@ -405,6 +397,15 @@ void CStorTestToolDlg::update_progress()
 		}
 		if (stortest->get_terminate()) {
 			break;
+		}
+
+		// check if update progress bar range
+		if (tot_LBA_cnt != stortest->get_progress_bar_end()) {
+			tot_LBA_cnt = stortest->get_progress_bar_end();
+			progress_scale = stortest->get_progress_bar_scale();
+			str.Format(_T("%u"), tot_LBA_cnt);
+			cur_loop_edit2_ctrl.SetWindowText(str);
+			cur_loop_ctrl.SetRange(0, (short)(tot_LBA_cnt >> progress_scale));
 		}
 
 		cur_LBA_cnt = stortest->get_cur_LBA_cnt();
