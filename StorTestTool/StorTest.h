@@ -24,6 +24,7 @@ private:
 	DWORD function_idx{ 0 }, LBA_start{ 0 }, LBA_end{ 0 }, wr_sector_min{ 0 }, wr_sector_max{ 0 };
 	DWORD test_len_pro_loop{ 0 }, test_loop_per_verify_all{ 0 };
 	WORD loop_num{ 0 };
+	HANDLE hDevice{ NULL };
 
 	// control progress bar
 	std::atomic_uint cur_LBA_cnt{ 0 }, cur_loop_cnt{ 0 };
@@ -42,6 +43,8 @@ private:
 	LARGE_INTEGER nBeginTime{ NULL };
 	LARGE_INTEGER nEndTime{ NULL };
 	double cmd_time{ NULL };
+
+	void close_hDevice();
 
 	void dec_in_hex(BYTE* hex_byte, DWORD num);
 	void get_LBA_pattern(BYTE* LBA_pattern, DWORD LBA, WORD loop);

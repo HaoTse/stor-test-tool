@@ -18,6 +18,20 @@ StorTest::StorTest(Device dev, DWORD fun_idx, DWORD start, DWORD end, DWORD smin
 	QueryPerformanceFrequency(&nFreq);
 }
 
+void StorTest::close_hDevice()
+{
+	DWORD bytes_returned;
+	CString msg;
+	// unlock volume
+	if (!DeviceIoControl(hDevice, FSCTL_UNLOCK_VOLUME, NULL, 0, NULL, 0, &bytes_returned, NULL)) {
+		TRACE(_T("\n[Error] FSCTL_UNLOCK_VOLUME failed. Error code = %u.\n"), GetLastError());
+		msg.Format(_T("FSCTL_UNLOCK_VOLUME failed. Error code = %u."), GetLastError());
+		throw msg;
+	}
+
+	CloseHandle(hDevice);
+}
+
 void StorTest::dec_in_hex(BYTE* hex_byte, DWORD num)
 {
 	ULONGLONG num_hex;
@@ -248,7 +262,8 @@ BOOL StorTest::sfun_sequential_a(HANDLE hDevice, WORD cur_loop, STL_RNG stl_rng)
 			delete[] wr_data;
 			write_log_file(); // write cmd and error log, ehance the msg buffer is empty
 			CloseHandle(cmd_file_hand);
-			CloseHandle(hDevice);
+			set_terminate();
+			close_hDevice();
 			throw std::runtime_error("Write LBA failed.");
 		}
 		QueryPerformanceCounter(&nEndTime); // timer end
@@ -264,7 +279,8 @@ BOOL StorTest::sfun_sequential_a(HANDLE hDevice, WORD cur_loop, STL_RNG stl_rng)
 			delete[] wr_data;
 			write_log_file(); // write cmd and error log, ehance the msg buffer is empty
 			CloseHandle(cmd_file_hand);
-			CloseHandle(hDevice);
+			set_terminate();
+			close_hDevice();
 			throw std::runtime_error("Read LBA failed.");
 		}
 		QueryPerformanceCounter(&nEndTime); // timer end
@@ -290,7 +306,8 @@ BOOL StorTest::sfun_sequential_a(HANDLE hDevice, WORD cur_loop, STL_RNG stl_rng)
 				delete[] wr_data;
 				write_log_file(); // write cmd and error log, ehance the msg buffer is empty
 				CloseHandle(cmd_file_hand);
-				CloseHandle(hDevice);
+				set_terminate();
+				close_hDevice();
 				throw std::runtime_error("Find an error pattern. Show in error log.");
 			}
 		}
@@ -345,7 +362,8 @@ BOOL StorTest::sfun_sequential_b(HANDLE hDevice, WORD cur_loop, STL_RNG stl_rng,
 			delete[] wr_data;
 			write_log_file(); // write cmd and error log, ehance the msg buffer is empty
 			CloseHandle(cmd_file_hand);
-			CloseHandle(hDevice);
+			set_terminate();
+			close_hDevice();
 			throw std::runtime_error("Write LBA failed.");
 		}
 		QueryPerformanceCounter(&nEndTime); // timer end
@@ -398,7 +416,8 @@ BOOL StorTest::sfun_sequential_c(HANDLE hDevice, WORD cur_loop)
 			delete[] wr_data;
 			write_log_file(); // write cmd and error log, ehance the msg buffer is empty
 			CloseHandle(cmd_file_hand);
-			CloseHandle(hDevice);
+			set_terminate();
+			close_hDevice();
 			throw std::runtime_error("Read LBA failed.");
 		}
 		QueryPerformanceCounter(&nEndTime); // timer end
@@ -430,7 +449,8 @@ BOOL StorTest::sfun_sequential_c(HANDLE hDevice, WORD cur_loop)
 				delete[] wr_data;
 				write_log_file(); // write cmd and error log, ehance the msg buffer is empty
 				CloseHandle(cmd_file_hand);
-				CloseHandle(hDevice);
+				set_terminate();
+				close_hDevice();
 				throw std::runtime_error("Find an error pattern. Show in error log.");
 			}
 		}
@@ -480,7 +500,8 @@ BOOL StorTest::sfun_reverse_a(HANDLE hDevice, WORD cur_loop, STL_RNG stl_rng)
 			delete[] wr_data;
 			write_log_file(); // write cmd and error log, ehance the msg buffer is empty
 			CloseHandle(cmd_file_hand);
-			CloseHandle(hDevice);
+			set_terminate();
+			close_hDevice();
 			throw std::runtime_error("Write LBA failed.");
 		}
 		QueryPerformanceCounter(&nEndTime); // timer end
@@ -496,7 +517,8 @@ BOOL StorTest::sfun_reverse_a(HANDLE hDevice, WORD cur_loop, STL_RNG stl_rng)
 			delete[] wr_data;
 			write_log_file(); // write cmd and error log, ehance the msg buffer is empty
 			CloseHandle(cmd_file_hand);
-			CloseHandle(hDevice);
+			set_terminate();
+			close_hDevice();
 			throw std::runtime_error("Read LBA failed.");
 		}
 		QueryPerformanceCounter(&nEndTime); // timer end
@@ -522,7 +544,8 @@ BOOL StorTest::sfun_reverse_a(HANDLE hDevice, WORD cur_loop, STL_RNG stl_rng)
 				delete[] wr_data;
 				write_log_file(); // write cmd and error log, ehance the msg buffer is empty
 				CloseHandle(cmd_file_hand);
-				CloseHandle(hDevice);
+				set_terminate();
+				close_hDevice();
 				throw std::runtime_error("Find an error pattern. Show in error log.");
 			}
 		}
@@ -572,7 +595,8 @@ BOOL StorTest::sfun_reverse_b(HANDLE hDevice, WORD cur_loop, STL_RNG stl_rng)
 			delete[] wr_data;
 			write_log_file(); // write cmd and error log, ehance the msg buffer is empty
 			CloseHandle(cmd_file_hand);
-			CloseHandle(hDevice);
+			set_terminate();
+			close_hDevice();
 			throw std::runtime_error("Write LBA failed.");
 		}
 		QueryPerformanceCounter(&nEndTime); // timer end
@@ -626,7 +650,8 @@ BOOL StorTest::sfun_reverse_c(HANDLE hDevice, WORD cur_loop)
 			delete[] wr_data;
 			write_log_file(); // write cmd and error log, ehance the msg buffer is empty
 			CloseHandle(cmd_file_hand);
-			CloseHandle(hDevice);
+			set_terminate();
+			close_hDevice();
 			throw std::runtime_error("Read LBA failed.");
 		}
 		QueryPerformanceCounter(&nEndTime); // timer end
@@ -652,7 +677,8 @@ BOOL StorTest::sfun_reverse_c(HANDLE hDevice, WORD cur_loop)
 				delete[] wr_data;
 				write_log_file(); // write cmd and error log, ehance the msg buffer is empty
 				CloseHandle(cmd_file_hand);
-				CloseHandle(hDevice);
+				set_terminate();
+				close_hDevice();
 				throw std::runtime_error("Find an error pattern. Show in error log.");
 			}
 		}
@@ -697,7 +723,8 @@ BOOL StorTest::sfun_verify_c(HANDLE hDevice, WORD cur_loop)
 			delete[] wr_data;
 			write_log_file(); // write cmd and error log, ehance the msg buffer is empty
 			CloseHandle(cmd_file_hand);
-			CloseHandle(hDevice);
+			set_terminate();
+			close_hDevice();
 			throw std::runtime_error("Read LBA failed.");
 		}
 		QueryPerformanceCounter(&nEndTime); // timer end
@@ -727,7 +754,8 @@ BOOL StorTest::sfun_verify_c(HANDLE hDevice, WORD cur_loop)
 				delete[] wr_data;
 				write_log_file(); // write cmd and error log, ehance the msg buffer is empty
 				CloseHandle(cmd_file_hand);
-				CloseHandle(hDevice);
+				set_terminate();
+				close_hDevice();
 				throw std::runtime_error("Find an error pattern. Show in error log.");
 			}
 		}
@@ -743,15 +771,6 @@ BOOL StorTest::sfun_verify_c(HANDLE hDevice, WORD cur_loop)
 
 BOOL StorTest::fun_sequential_ac()
 {
-	// device information
-	HANDLE hDevice = selected_device.openDevice();
-	DWORD max_transf_len = selected_device.getMaxTransfLen();
-	if (hDevice == INVALID_HANDLE_VALUE) {
-		TRACE(_T("\n[Error] Open device failed. Error Code = %u.\n"), GetLastError());
-		CloseHandle(hDevice);
-		throw std::runtime_error("Open device failed.");
-	}
-
 	// initial random
 	std::random_device rd;
 	RNGInt generator(rd());
@@ -775,22 +794,11 @@ BOOL StorTest::fun_sequential_ac()
 		CloseHandle(cmd_file_hand);
 	}
 
-	CloseHandle(hDevice);
-
 	return TRUE;
 }
 
 BOOL StorTest::fun_sequential_bc()
 {
-	// device information
-	HANDLE hDevice = selected_device.openDevice();
-	DWORD max_transf_len = selected_device.getMaxTransfLen();
-	if (hDevice == INVALID_HANDLE_VALUE) {
-		TRACE(_T("\n[Error] Open device failed. Error Code = %u.\n"), GetLastError());
-		CloseHandle(hDevice);
-		throw std::runtime_error("Open device failed.");
-	}
-
 	// initial random
 	std::random_device rd;
 	RNGInt generator(rd());
@@ -814,22 +822,11 @@ BOOL StorTest::fun_sequential_bc()
 		CloseHandle(cmd_file_hand);
 	}
 
-	CloseHandle(hDevice);
-
 	return TRUE;
 }
 
 BOOL StorTest::fun_reverse_ac()
 {
-	// device information
-	HANDLE hDevice = selected_device.openDevice();
-	DWORD max_transf_len = selected_device.getMaxTransfLen();
-	if (hDevice == INVALID_HANDLE_VALUE) {
-		TRACE(_T("\n[Error] Open device failed. Error Code = %u.\n"), GetLastError());
-		CloseHandle(hDevice);
-		throw std::runtime_error("Open device failed.");
-	}
-
 	// initial random
 	std::random_device rd;
 	RNGInt generator(rd());
@@ -853,22 +850,11 @@ BOOL StorTest::fun_reverse_ac()
 		CloseHandle(cmd_file_hand);
 	}
 
-	CloseHandle(hDevice);
-
 	return TRUE;
 }
 
 BOOL StorTest::fun_reverse_bc()
 {
-	// device information
-	HANDLE hDevice = selected_device.openDevice();
-	DWORD max_transf_len = selected_device.getMaxTransfLen();
-	if (hDevice == INVALID_HANDLE_VALUE) {
-		TRACE(_T("\n[Error] Open device failed. Error Code = %u.\n"), GetLastError());
-		CloseHandle(hDevice);
-		throw std::runtime_error("Open device failed.");
-	}
-
 	// initial random
 	std::random_device rd;
 	RNGInt generator(rd());
@@ -892,22 +878,11 @@ BOOL StorTest::fun_reverse_bc()
 		CloseHandle(cmd_file_hand);
 	}
 
-	CloseHandle(hDevice);
-
 	return TRUE;
 }
 
 BOOL StorTest::fun_testmode()
 {
-	// device information
-	HANDLE hDevice = selected_device.openDevice();
-	DWORD max_transf_len = selected_device.getMaxTransfLen();
-	if (hDevice == INVALID_HANDLE_VALUE) {
-		TRACE(_T("\n[Error] Open device failed. Error Code = %u.\n"), GetLastError());
-		CloseHandle(hDevice);
-		throw std::runtime_error("Open device failed.");
-	}
-
 	// initial random
 	std::random_device rd;
 	RNGInt generator(rd());
@@ -965,22 +940,11 @@ BOOL StorTest::fun_testmode()
 		CloseHandle(cmd_file_hand);
 	}
 
-	CloseHandle(hDevice);
-
 	return TRUE;
 }
 
 BOOL StorTest::fun_onewrite()
 {
-	// device information
-	HANDLE hDevice = selected_device.openDevice();
-	DWORD max_transf_len = selected_device.getMaxTransfLen();
-	if (hDevice == INVALID_HANDLE_VALUE) {
-		TRACE(_T("\n[Error] Open device failed. Error Code = %u.\n"), GetLastError());
-		CloseHandle(hDevice);
-		throw std::runtime_error("Open device failed.");
-	}
-
 	// initial random
 	std::random_device rd;
 	std::mt19937 generator(rd());
@@ -988,6 +952,7 @@ BOOL StorTest::fun_onewrite()
 
 	CString msg;
 	DWORD cur_LBA = LBA_start;
+	DWORD max_transf_len = selected_device.getMaxTransfLen();
 	// open command log file
 	cmd_file_hand = get_file_handle(dir_path + CString(_T("\\command.txt")));
 	while (cur_LBA < LBA_end)
@@ -1018,7 +983,8 @@ BOOL StorTest::fun_onewrite()
 			delete[] wr_data;
 			write_log_file(); // write cmd and error log, ehance the msg buffer is empty
 			CloseHandle(cmd_file_hand);
-			CloseHandle(hDevice);
+			set_terminate();
+			close_hDevice();
 			throw std::runtime_error("Write LBA failed.");
 		}
 		QueryPerformanceCounter(&nEndTime); // timer end
@@ -1036,22 +1002,11 @@ BOOL StorTest::fun_onewrite()
 	write_log_file(); // write cmd and error log, ehance the msg buffer is empty
 	CloseHandle(cmd_file_hand);
 
-	CloseHandle(hDevice);
-
 	return TRUE;
 }
 
 BOOL StorTest::fun_verify()
 {
-	// device information
-	HANDLE hDevice = selected_device.openDevice();
-	DWORD max_transf_len = selected_device.getMaxTransfLen();
-	if (hDevice == INVALID_HANDLE_VALUE) {
-		TRACE(_T("\n[Error] Open device failed. Error Code = %u.\n"), GetLastError());
-		CloseHandle(hDevice);
-		throw std::runtime_error("Open device failed.");
-	}
-
 	CString msg;
 	for (WORD cur_loop = 0; loop_num == 0 || cur_loop < loop_num; cur_loop++) {
 		// open command log file
@@ -1068,22 +1023,11 @@ BOOL StorTest::fun_verify()
 		CloseHandle(cmd_file_hand);
 	}
 
-	CloseHandle(hDevice);
-
 	return TRUE;
 }
 
 BOOL StorTest::fun_varyzone()
 {
-	// device information
-	HANDLE hDevice = selected_device.openDevice();
-	DWORD max_transf_len = selected_device.getMaxTransfLen();
-	if (hDevice == INVALID_HANDLE_VALUE) {
-		TRACE(_T("\n[Error] Open device failed. Error Code = %u.\n"), GetLastError());
-		CloseHandle(hDevice);
-		throw std::runtime_error("Open device failed.");
-	}
-
 	// initial random
 	std::random_device rd;
 	RNGInt generator(rd());
@@ -1104,7 +1048,7 @@ BOOL StorTest::fun_varyzone()
 	// W
 	if (!sfun_sequential_b(hDevice, 0, wr_sec_rng, TRUE)) {
 		delete[] LBA_loop_map;
-		CloseHandle(hDevice);
+		close_hDevice();
 		return TRUE;
 	}
 	
@@ -1114,7 +1058,7 @@ BOOL StorTest::fun_varyzone()
 	// R
 	if (!sfun_sequential_c(hDevice, 0)) {
 		delete[] LBA_loop_map;
-		CloseHandle(hDevice);
+		close_hDevice();
 		return TRUE;
 	}
 	
@@ -1123,6 +1067,7 @@ BOOL StorTest::fun_varyzone()
 	CloseHandle(cmd_file_hand);
 
 	// varyzone
+	DWORD max_transf_len = selected_device.getMaxTransfLen();
 	DWORD write_LBA;
 	for (WORD cur_loop = 1; loop_num == 1 || cur_loop < loop_num; cur_loop++) {
 		// open command log file
@@ -1164,7 +1109,8 @@ BOOL StorTest::fun_varyzone()
 				delete[] LBA_loop_map;
 				write_log_file(); // write cmd and error log, ehance the msg buffer is empty
 				CloseHandle(cmd_file_hand);
-				CloseHandle(hDevice);
+				set_terminate();
+				close_hDevice();
 				throw std::runtime_error("Write LBA failed.");
 			}
 			QueryPerformanceCounter(&nEndTime); // timer end
@@ -1201,7 +1147,8 @@ BOOL StorTest::fun_varyzone()
 				delete[] LBA_loop_map;
 				write_log_file(); // write cmd and error log, ehance the msg buffer is empty
 				CloseHandle(cmd_file_hand);
-				CloseHandle(hDevice);
+				set_terminate();
+				close_hDevice();
 				throw std::runtime_error("Read LBA failed.");
 			}
 			QueryPerformanceCounter(&nEndTime); // timer end
@@ -1228,7 +1175,8 @@ BOOL StorTest::fun_varyzone()
 					delete[] LBA_loop_map;
 					write_log_file(); // write cmd and error log, ehance the msg buffer is empty
 					CloseHandle(cmd_file_hand);
-					CloseHandle(hDevice);
+					set_terminate();
+					close_hDevice();
 					throw std::runtime_error("Find an error pattern. Show in error log.");
 				}
 			}
@@ -1259,7 +1207,8 @@ BOOL StorTest::fun_varyzone()
 				delete[] LBA_loop_map;
 				write_log_file(); // write cmd and error log, ehance the msg buffer is empty
 				CloseHandle(cmd_file_hand);
-				CloseHandle(hDevice);
+				set_terminate();
+				close_hDevice();
 				throw std::runtime_error("Read LBA failed.");
 			}
 			QueryPerformanceCounter(&nEndTime); // timer end
@@ -1286,7 +1235,8 @@ BOOL StorTest::fun_varyzone()
 					delete[] LBA_loop_map;
 					write_log_file(); // write cmd and error log, ehance the msg buffer is empty
 					CloseHandle(cmd_file_hand);
-					CloseHandle(hDevice);
+					set_terminate();
+					close_hDevice();
 					throw std::runtime_error("Find an error pattern. Show in error log.");
 				}
 			}
@@ -1325,7 +1275,8 @@ BOOL StorTest::fun_varyzone()
 					delete[] wr_data;
 					write_log_file(); // write cmd and error log, ehance the msg buffer is empty
 					CloseHandle(cmd_file_hand);
-					CloseHandle(hDevice);
+					set_terminate();
+					close_hDevice();
 					throw std::runtime_error("Read LBA failed.");
 				}
 				QueryPerformanceCounter(&nEndTime); // timer end
@@ -1352,7 +1303,8 @@ BOOL StorTest::fun_varyzone()
 						delete[] wr_data;
 						write_log_file(); // write cmd and error log, ehance the msg buffer is empty
 						CloseHandle(cmd_file_hand);
-						CloseHandle(hDevice);
+						set_terminate();
+						close_hDevice();
 						throw std::runtime_error("Find an error pattern. Show in error log.");
 					}
 				}
@@ -1371,41 +1323,76 @@ BOOL StorTest::fun_varyzone()
 	}
 
 	delete[] LBA_loop_map;
-	CloseHandle(hDevice);
 	return TRUE;
 }
 
 BOOL StorTest::run()
 {
+	CString msg;
+	// device information
+	hDevice = selected_device.openDevice();
+	if (hDevice == INVALID_HANDLE_VALUE) {
+		TRACE(_T("\n[Error] Open device failed. Error Code = %u.\n"), GetLastError());
+		msg.Format(_T("Open device failed. Error Code = %u."), GetLastError());
+		throw msg;
+	}
+
+	// lock volume
+	DWORD bytes_returned = 0;
+	if (!DeviceIoControl(hDevice, FSCTL_LOCK_VOLUME, NULL, 0, NULL, 0, &bytes_returned, NULL)) {
+		TRACE("\n[Error] FSCTL_LOCK_VOLUME failed. Error code = %u.\n", GetLastError());
+		msg.Format(_T("FSCTL_LOCK_VOLUME failed. Error code = %u."), GetLastError());
+		throw msg;
+	}
+
+	// dismount volume
+	if (!DeviceIoControl(hDevice, FSCTL_DISMOUNT_VOLUME, NULL, 0, NULL, 0, &bytes_returned, NULL)) {
+		TRACE("\n[Error] FSCTL_DISMOUNT_VOLUME failed. Error code = %u.\n", GetLastError());
+		msg.Format(_T("FSCTL_DISMOUNT_VOLUME failed. Error code = %u."), GetLastError());
+		throw msg;
+	}
+
+	BOOL rtn;
 	switch (function_idx)
 	{
 	case 0:
 		set_log_msg(CString(_T("Start Sequential mode a+c\n")));
-		return fun_sequential_ac();
+		rtn = fun_sequential_ac();
+		break;
 	case 1:
 		set_log_msg(CString(_T("Start Sequential mode b+c\n")));
-		return fun_sequential_bc();
+		rtn = fun_sequential_bc();
+		break;
 	case 2:
 		set_log_msg(CString(_T("Start Reverse mode a+c\n")));
-		return fun_reverse_ac();
+		rtn = fun_reverse_ac();
+		break;
 	case 3:
 		set_log_msg(CString(_T("Start Reverse mode b+c\n")));
-		return fun_reverse_bc();
+		rtn = fun_reverse_bc();
+		break;
 	case 4:
 		set_log_msg(CString(_T("Start TestMode\n")));
-		return fun_testmode();
+		rtn = fun_testmode();
+		break;
 	case 5:
 		set_log_msg(CString(_T("Start OneWrite\n")));
-		return fun_onewrite();
+		rtn = fun_onewrite();
+		break;
 	case 6:
 		set_log_msg(CString(_T("Start Verify\n")));
-		return fun_verify();
+		rtn = fun_verify();
+		break;
 	case 7:
 		set_log_msg(CString(_T("Start Varyzone\n")));
-		return fun_varyzone();
+		rtn = fun_varyzone();
+		break;
 	default:
 		throw std::runtime_error("Function setup error.");
 	}
+
+	close_hDevice();
+	return rtn;
 }
 
 BOOL StorTest::open_log_dir()
