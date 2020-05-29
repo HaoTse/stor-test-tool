@@ -108,7 +108,7 @@ void Device::initMaxTransfLen() {
 
 CString Device::showText() {
 	CString text;
-	DWORD capacity_MB = (this->capacity_sec >> 20) * this->byte_per_sec;
+	DWORD capacity_MB = (this->capacity_sec >> (20 - PHYSICAL_SECTOR_SIZE_POW2));
 	if (capacity_MB > 1024) {
 		double capacity_GB = (double)capacity_MB / 1024;
 		text.Format(_T("%c: (%.1f GB)"), this->ident, capacity_GB);
