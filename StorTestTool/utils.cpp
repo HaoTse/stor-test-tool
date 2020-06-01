@@ -52,18 +52,17 @@ int enumUsbDisk(vector<Device> &device_list, int cnt)
 				Device tmp_device('A' + i);
 				HANDLE hDevice = tmp_device.openDevice();
 				if (hDevice == INVALID_HANDLE_VALUE) {
-					TRACE("\n[Error] Open %s failed.\n", disk_path);
+					TRACE("\n[Warn] Open %s failed.\n", disk_path);
+				}
+				else {
+					// skip invalid device (include card reader)
+					if (tmp_device.isValid()) {
+						device_list.push_back(tmp_device);
+						usb_disk_cnt++;
+					}
+
 					CloseHandle(hDevice);
-					return -1;
 				}
-
-				// skip invalid device (include card reader)
-				if (tmp_device.isValid()) {
-					device_list.push_back(tmp_device);
-					usb_disk_cnt++;
-				}
-
-				CloseHandle(hDevice);
 			}
 		}
 		all_disk = all_disk >> 1;

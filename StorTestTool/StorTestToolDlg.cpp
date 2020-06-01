@@ -140,7 +140,7 @@ void CStorTestToolDlg::OnCbnDropdownDevice()
 	// set device combo box
 	int usb_cnt = enumUsbDisk(device_list, 8);
 	if (usb_cnt == -1) {
-		MessageBox(_T("Enumerate usb disk failed."), _T("Error"), MB_ICONERROR);
+		MessageBox(_T("No device found."), _T("Error"), MB_ICONERROR);
 	}
 	else {
 		for (int i = 0; i < usb_cnt; i++) {
