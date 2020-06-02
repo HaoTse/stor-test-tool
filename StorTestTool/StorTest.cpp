@@ -1150,7 +1150,7 @@ BOOL StorTest::fun_varyzone()
 			// get varyzone read range
 			DWORD read_begin_LBA = begin_LBA;
 			DWORD r_sec_num = wr_sec_num;
-			if (begin_LBA != 0) {
+			if (begin_LBA > LBA_start) {
 				read_begin_LBA--;
 				r_sec_num++;
 			}
