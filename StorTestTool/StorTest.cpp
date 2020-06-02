@@ -1044,6 +1044,20 @@ BOOL StorTest::fun_varyzone()
 	WORD* LBA_loop_map;
 	LBA_loop_map = new WORD[LBA_end - LBA_start];
 
+	// write setup file
+	HANDLE setup_file_hand = get_file_handle(dir_path + _T("\\setup.txt"));
+	CString setup_msg;
+	DWORD bytesWritten;
+	
+	setup_msg.Format(_T("TestLengthPerLoop: %u\nTestLoopPerVerifyAll: %u\n"), test_len_pro_loop, test_loop_per_verify_all);
+	WriteFile(
+		setup_file_hand,
+		setup_msg,
+		setup_msg.GetLength() * 2,
+		&bytesWritten,
+		nullptr);
+	CloseHandle(setup_file_hand);
+
 	// sequential b+c
 	// open command log file
 	CString cmd_file_name;
