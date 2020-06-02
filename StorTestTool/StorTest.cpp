@@ -156,6 +156,64 @@ void StorTest::diff_cmd(WORD loop, DWORD start_LBA, DWORD cmd_length, BYTE* read
 	set_error_msg(msg);
 }
 
+void StorTest::verify_diff_cmd(DWORD start_LBA, DWORD cmd_length, BYTE* read_buf)
+{
+	CString title, diff_table, tmp, msg = _T("");
+	CString if_error_str;
+	CString expect_str, read_str;
+	DWORD error_LBA_cnt = 0, error_bit_cnt = 0, error_byte_cnt = 0;
+
+	BYTE expect_data[PHYSICAL_SECTOR_SIZE];
+	for (DWORD cur_LBA = 0; cur_LBA < cmd_length; cur_LBA++) {
+		title.Format(_T("LBA %u"), start_LBA + cur_LBA);
+		diff_table = CString(_T("\tLBA Pattern")) + CString(_T("\t\t\t\t\t\t\t\t\t\t\tRead Data\n"));
+
+		// get pattern loop num
+		DWORD loop_offset = cur_LBA * PHYSICAL_SECTOR_SIZE + 16;
+		WORD pattern_loop = ((WORD)(*(read_buf + loop_offset)) >> 8) + *(read_buf + loop_offset + 1);
+		get_LBA_pattern(expect_data, start_LBA + cur_LBA, pattern_loop);
+
+		if_error_str = _T("\n");
+		for (DWORD i = 0; i < (PHYSICAL_SECTOR_SIZE >> 4); i++) {
+			expect_str = CString(_T("\t"));
+			read_str = CString(_T(" | "));
+
+			for (DWORD j = 0; j < 16; j++) {
+				DWORD cur_idx = (i << 4) + j;
+				BYTE tmp_expect = *(expect_data + cur_idx);
+				BYTE tmp_read = *(read_buf + cur_LBA * PHYSICAL_SECTOR_SIZE + cur_idx);
+				BYTE diff_byte = tmp_expect ^ tmp_read;
+				if (diff_byte != 0) {
+					tmp.Format(_T(">%02X"), tmp_expect);
+					expect_str += tmp;
+					tmp.Format(_T(">%02X"), tmp_read);
+					read_str += tmp;
+					if_error_str = _T(" (Error)\n");
+
+					// count error byte and error bit
+					error_byte_cnt++;
+					error_bit_cnt += countBits(diff_byte);
+				}
+				else {
+					tmp.Format(_T(" %02X"), tmp_expect);
+					expect_str += tmp;
+					tmp.Format(_T(" %02X"), tmp_read);
+					read_str += tmp;
+				}
+			}
+
+			diff_table += expect_str + read_str + CString(_T("\n"));
+		}
+		if (if_error_str != _T("\n")) error_LBA_cnt++;
+
+		msg += title + if_error_str + diff_table;
+	}
+	tmp.Format(_T("Error LBA count: %u, Error Byte count: %u, Error bits count: %u\n"), error_LBA_cnt, error_byte_cnt, error_bit_cnt);
+	msg = tmp + msg;
+
+	set_error_msg(msg);
+}
+
 void StorTest::diff_cmd(WORD* loop_map, DWORD start_LBA, DWORD cmd_length, BYTE* read_buf)
 {
 	CString title, diff_table, tmp, msg = _T("");
@@ -752,7 +810,7 @@ BOOL StorTest::sfun_verify_c(HANDLE hDevice, WORD cur_loop)
 				set_log_msg(msg);
 				msg.Format(_T("Verify R Loop: %u, LBA: %u, Size: %u\n"), cur_loop, cur_LBA, wr_sec_num);
 				set_error_msg(msg);
-				diff_cmd(pattern_loop, cur_LBA, wr_sec_num, wr_data);
+				verify_diff_cmd(cur_LBA, wr_sec_num, wr_data);
 
 				// abort stortest
 				set_terminate();

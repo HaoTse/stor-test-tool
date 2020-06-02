@@ -56,6 +56,7 @@ private:
 	
 	BOOL compare_sector(BYTE* expect_buf, BYTE* read_buf);
 	void diff_cmd(WORD loop, DWORD start_LBA, DWORD cmd_length, BYTE* read_buf);
+	void verify_diff_cmd(DWORD start_LBA, DWORD cmd_length, BYTE* read_buf);
 	void diff_cmd(WORD* loop_map, DWORD start_LBA, DWORD cmd_length, BYTE* read_buf);
 
 	HANDLE get_file_handle(CString file_path);
