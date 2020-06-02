@@ -471,6 +471,9 @@ void CStorTestToolDlg::set_dlg_enable(bool setup)
 	run_btn_ctrl.EnableWindow(setup);
 	cancel_btn_ctrl.EnableWindow(setup);
 
+	varyzone_len_ploop_edit_ctrl.EnableWindow(setup);
+	varyzone_verify_all_loop_edit_ctrl.EnableWindow(setup);
+
 	stop_btn_ctrl.EnableWindow(!setup);
 	pause_btn_ctrl.EnableWindow(!setup);
 }
