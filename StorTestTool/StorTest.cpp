@@ -332,7 +332,7 @@ BOOL StorTest::sfun_sequential_a(HANDLE hDevice, WORD cur_loop, STL_RNG stl_rng)
 		QueryPerformanceCounter(&nEndTime); // timer end
 		cmd_time = ((double)(nEndTime.QuadPart - nBeginTime.QuadPart) * 1000) / (double)nFreq.QuadPart;
 		msg.Format(_T("Loop %5u Write LBA: %10u~%10u (size: %4u) Elapsed %8.3f ms\n"),
-			cur_loop, cur_LBA, cur_LBA + wr_sec_num - 1, wr_sec_num, cmd_time);
+			cur_loop, cur_LBA, cur_LBA + wr_sec_num, wr_sec_num, cmd_time);
 		set_cmd_msg(msg);
 
 		// read LBA
@@ -349,7 +349,7 @@ BOOL StorTest::sfun_sequential_a(HANDLE hDevice, WORD cur_loop, STL_RNG stl_rng)
 		QueryPerformanceCounter(&nEndTime); // timer end
 		cmd_time = ((double)(nEndTime.QuadPart - nBeginTime.QuadPart) * 1000) / (double)nFreq.QuadPart;
 		msg.Format(_T("Loop %5u Read LBA:  %10u~%10u (size: %4u) Elapsed %8.3f ms\n"),
-			cur_loop, cur_LBA, cur_LBA + wr_sec_num - 1, wr_sec_num, cmd_time);
+			cur_loop, cur_LBA, cur_LBA + wr_sec_num, wr_sec_num, cmd_time);
 		set_cmd_msg(msg);
 
 		// compare pattern
@@ -432,7 +432,7 @@ BOOL StorTest::sfun_sequential_b(HANDLE hDevice, WORD cur_loop, STL_RNG stl_rng,
 		QueryPerformanceCounter(&nEndTime); // timer end
 		cmd_time = ((double)(nEndTime.QuadPart - nBeginTime.QuadPart) * 1000) / (double)nFreq.QuadPart;
 		msg.Format(_T("Loop %5u Write LBA: %10u~%10u (size: %4u) Elapsed %8.3f ms\n"),
-			cur_loop, cur_LBA, cur_LBA + wr_sec_num - 1, wr_sec_num, cmd_time);
+			cur_loop, cur_LBA, cur_LBA + wr_sec_num, wr_sec_num, cmd_time);
 		set_cmd_msg(msg);
 
 		cur_LBA += wr_sec_num;
@@ -486,7 +486,7 @@ BOOL StorTest::sfun_sequential_c(HANDLE hDevice, WORD cur_loop)
 		QueryPerformanceCounter(&nEndTime); // timer end
 		cmd_time = ((double)(nEndTime.QuadPart - nBeginTime.QuadPart) * 1000) / (double)nFreq.QuadPart;
 		msg.Format(_T("Loop %5u Read LBA:  %10u~%10u (size: %4u) Elapsed %8.3f ms\n"),
-			cur_loop, cur_LBA, cur_LBA + wr_sec_num - 1, wr_sec_num, cmd_time);
+			cur_loop, cur_LBA, cur_LBA + wr_sec_num, wr_sec_num, cmd_time);
 		set_cmd_msg(msg);
 
 		// compare pattern
@@ -570,7 +570,7 @@ BOOL StorTest::sfun_reverse_a(HANDLE hDevice, WORD cur_loop, STL_RNG stl_rng)
 		QueryPerformanceCounter(&nEndTime); // timer end
 		cmd_time = ((double)(nEndTime.QuadPart - nBeginTime.QuadPart) * 1000) / (double)nFreq.QuadPart;
 		msg.Format(_T("Loop %5u Write LBA: %10u~%10u (size: %4u) Elapsed %8.3f ms\n"),
-			cur_loop, begin_LBA, cur_LBA - 1, wr_sec_num, cmd_time);
+			cur_loop, begin_LBA, cur_LBA, wr_sec_num, cmd_time);
 		set_cmd_msg(msg);
 
 		// read LBA
@@ -587,7 +587,7 @@ BOOL StorTest::sfun_reverse_a(HANDLE hDevice, WORD cur_loop, STL_RNG stl_rng)
 		QueryPerformanceCounter(&nEndTime); // timer end
 		cmd_time = ((double)(nEndTime.QuadPart - nBeginTime.QuadPart) * 1000) / (double)nFreq.QuadPart;
 		msg.Format(_T("Loop %5u Read LBA:  %10u~%10u (size: %4u) Elapsed %8.3f ms\n"),
-			cur_loop, begin_LBA, cur_LBA - 1, wr_sec_num, cmd_time);
+			cur_loop, begin_LBA, cur_LBA, wr_sec_num, cmd_time);
 		set_cmd_msg(msg);
 
 		// compare pattern
@@ -665,7 +665,7 @@ BOOL StorTest::sfun_reverse_b(HANDLE hDevice, WORD cur_loop, STL_RNG stl_rng)
 		QueryPerformanceCounter(&nEndTime); // timer end
 		cmd_time = ((double)(nEndTime.QuadPart - nBeginTime.QuadPart) * 1000) / (double)nFreq.QuadPart;
 		msg.Format(_T("Loop %5u Write LBA: %10u~%10u (size: %4u) Elapsed %8.3f ms\n"),
-			cur_loop, begin_LBA, cur_LBA - 1, wr_sec_num, cmd_time);
+			cur_loop, begin_LBA, cur_LBA, wr_sec_num, cmd_time);
 		set_cmd_msg(msg);
 
 		cur_LBA -= wr_sec_num;
@@ -720,7 +720,7 @@ BOOL StorTest::sfun_reverse_c(HANDLE hDevice, WORD cur_loop)
 		QueryPerformanceCounter(&nEndTime); // timer end
 		cmd_time = ((double)(nEndTime.QuadPart - nBeginTime.QuadPart) * 1000) / (double)nFreq.QuadPart;
 		msg.Format(_T("Loop %5u Read LBA:  %10u~%10u (size: %4u) Elapsed %8.3f ms\n"),
-			cur_loop, begin_LBA, cur_LBA - 1, wr_sec_num, cmd_time);
+			cur_loop, begin_LBA, cur_LBA, wr_sec_num, cmd_time);
 		set_cmd_msg(msg);
 
 		// compare pattern
@@ -793,7 +793,7 @@ BOOL StorTest::sfun_verify_c(HANDLE hDevice, WORD cur_loop)
 		QueryPerformanceCounter(&nEndTime); // timer end
 		cmd_time = ((double)(nEndTime.QuadPart - nBeginTime.QuadPart) * 1000) / (double)nFreq.QuadPart;
 		msg.Format(_T("Loop %5u Read LBA:  %10u~%10u (size: %4u) Elapsed %8.3f ms\n"),
-			cur_loop, cur_LBA, cur_LBA + wr_sec_num - 1, wr_sec_num, cmd_time);
+			cur_loop, cur_LBA, cur_LBA + wr_sec_num, wr_sec_num, cmd_time);
 		set_cmd_msg(msg);
 
 		// compare pattern
@@ -840,7 +840,7 @@ BOOL StorTest::fun_sequential_ac()
 	STL_RNG stl_rng(generator, wr_sector_min, wr_sector_max);
 
 	CString msg;
-	for (WORD cur_loop = 0; loop_num == 0 || cur_loop < loop_num; cur_loop++) {
+	for (WORD cur_loop = 1; loop_num == 0 || cur_loop <= loop_num; cur_loop++) {
 		// open command log file
 		CString cmd_file_name;
 		cmd_file_name.Format(_T("\\loop%05u_command.txt"), cur_loop);
@@ -868,7 +868,7 @@ BOOL StorTest::fun_sequential_bc()
 	STL_RNG stl_rng(generator, wr_sector_min, wr_sector_max);
 
 	CString msg;
-	for (WORD cur_loop = 0; loop_num == 0 || cur_loop < loop_num; cur_loop++) {
+	for (WORD cur_loop = 1; loop_num == 0 || cur_loop <= loop_num; cur_loop++) {
 		// open command log file
 		CString cmd_file_name;
 		cmd_file_name.Format(_T("\\loop%05u_command.txt"), cur_loop);
@@ -896,7 +896,7 @@ BOOL StorTest::fun_reverse_ac()
 	STL_RNG stl_rng(generator, wr_sector_min, wr_sector_max);
 
 	CString msg;
-	for (WORD cur_loop = 0; loop_num == 0 || cur_loop < loop_num; cur_loop++) {
+	for (WORD cur_loop = 1; loop_num == 0 || cur_loop <= loop_num; cur_loop++) {
 		// open command log file
 		CString cmd_file_name;
 		cmd_file_name.Format(_T("\\loop%05u_command.txt"), cur_loop);
@@ -924,7 +924,7 @@ BOOL StorTest::fun_reverse_bc()
 	STL_RNG stl_rng(generator, wr_sector_min, wr_sector_max);
 
 	CString msg;
-	for (WORD cur_loop = 0; loop_num == 0 || cur_loop < loop_num; cur_loop++) {
+	for (WORD cur_loop = 1; loop_num == 0 || cur_loop <= loop_num; cur_loop++) {
 		// open command log file
 		CString cmd_file_name;
 		cmd_file_name.Format(_T("\\loop%05u_command.txt"), cur_loop);
@@ -952,7 +952,7 @@ BOOL StorTest::fun_testmode()
 	STL_RNG stl_rng(generator, wr_sector_min, wr_sector_max);
 
 	CString msg;
-	for (WORD cur_loop = 0; loop_num == 0 || cur_loop < loop_num;) {
+	for (WORD cur_loop = 1; loop_num == 0 || cur_loop <= loop_num;) {
 		// sequential a+c
 		// open command log file
 		CString cmd_file_name;
@@ -1035,7 +1035,7 @@ BOOL StorTest::fun_onewrite()
 
 		// get LBA pattern
 		for (DWORD i = 0; i < wr_sec_num; i++) {
-			get_LBA_pattern(wr_data + i * PHYSICAL_SECTOR_SIZE, cur_LBA + i, 0);
+			get_LBA_pattern(wr_data + i * PHYSICAL_SECTOR_SIZE, cur_LBA + i, 1);
 		}
 
 		// wrtie LBA
@@ -1052,7 +1052,7 @@ BOOL StorTest::fun_onewrite()
 		}
 		QueryPerformanceCounter(&nEndTime); // timer end
 		cmd_time = ((double)(nEndTime.QuadPart - nBeginTime.QuadPart) * 1000) / (double)nFreq.QuadPart;
-		msg.Format(_T("Write LBA: %10u~%10u (size: %4u) Elapsed %8.3f ms\n"), cur_LBA, cur_LBA + wr_sec_num - 1, wr_sec_num, cmd_time);
+		msg.Format(_T("Write LBA: %10u~%10u (size: %4u) Elapsed %8.3f ms\n"), cur_LBA, cur_LBA + wr_sec_num, wr_sec_num, cmd_time);
 		set_cmd_msg(msg);
 
 		cur_LBA += wr_sec_num;
@@ -1071,7 +1071,7 @@ BOOL StorTest::fun_onewrite()
 BOOL StorTest::fun_verify()
 {
 	CString msg;
-	for (WORD cur_loop = 0; loop_num == 0 || cur_loop < loop_num; cur_loop++) {
+	for (WORD cur_loop = 1; loop_num == 0 || cur_loop <= loop_num; cur_loop++) {
 		// open command log file
 		CString cmd_file_name;
 		cmd_file_name.Format(_T("\\loop%05u_command.txt"), cur_loop);
@@ -1195,7 +1195,7 @@ BOOL StorTest::fun_varyzone()
 			QueryPerformanceCounter(&nEndTime); // timer end
 			cmd_time = ((double)(nEndTime.QuadPart - nBeginTime.QuadPart) * 1000) / (double)nFreq.QuadPart;
 			msg.Format(_T("Loop %5u Write LBA: %10u~%10u (size: %4u) Elapsed %8.3f ms\n"),
-				cur_loop, begin_LBA, begin_LBA + wr_sec_num - 1, wr_sec_num, cmd_time);
+				cur_loop, begin_LBA, begin_LBA + wr_sec_num, wr_sec_num, cmd_time);
 			set_cmd_msg(msg);
 
 			// update loop map
@@ -1293,7 +1293,7 @@ BOOL StorTest::fun_varyzone()
 			QueryPerformanceCounter(&nEndTime); // timer end
 			cmd_time = ((double)(nEndTime.QuadPart - nBeginTime.QuadPart) * 1000) / (double)nFreq.QuadPart;
 			msg.Format(_T("Loop %5u Read LBA:  %10u~%10u (size: %4u) Elapsed %8.3f ms\n"),
-				cur_loop, cur_LBA, cur_LBA + wr_sec_num - 1, wr_sec_num, cmd_time);
+				cur_loop, cur_LBA, cur_LBA + wr_sec_num, wr_sec_num, cmd_time);
 			set_cmd_msg(msg);
 
 			// compare pattern
@@ -1365,7 +1365,7 @@ BOOL StorTest::fun_varyzone()
 				QueryPerformanceCounter(&nEndTime); // timer end
 				cmd_time = ((double)(nEndTime.QuadPart - nBeginTime.QuadPart) * 1000) / (double)nFreq.QuadPart;
 				msg.Format(_T("Loop %5u Read LBA:  %10u~%10u (size: %4u) Elapsed %8.3f ms\n"),
-					cur_loop, cur_LBA, cur_LBA + wr_sec_num - 1, wr_sec_num, cmd_time);
+					cur_loop, cur_LBA, cur_LBA + wr_sec_num, wr_sec_num, cmd_time);
 				set_cmd_msg(msg);
 
 				// compare pattern
