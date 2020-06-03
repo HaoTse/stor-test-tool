@@ -165,6 +165,17 @@ void CStorTestToolDlg::OnCbnSelchangeFunction()
 		loop_num_ctrl.EnableWindow(TRUE);
 	}
 
+	if (function_idx == 6) {
+		sector_min_ctrl.SetWindowText(_T(""));
+		sector_max_ctrl.SetWindowText(_T(""));
+		sector_min_ctrl.EnableWindow(FALSE);
+		sector_max_ctrl.EnableWindow(FALSE);
+	}
+	else {
+		sector_min_ctrl.EnableWindow(TRUE);
+		sector_max_ctrl.EnableWindow(TRUE);
+	}
+
 	if (function_idx == 7) {
 		varyzone_len_ploop_edit_ctrl.EnableWindow(TRUE);
 		varyzone_verify_all_loop_edit_ctrl.EnableWindow(TRUE);
@@ -234,13 +245,13 @@ void CStorTestToolDlg::OnBnClickedRun()
 	}
 	LBA_end = _ttoi(tmp);
 	sector_min_ctrl.GetWindowText(tmp);
-	if (tmp.IsEmpty()) {
+	if (function_idx != 6 && tmp.IsEmpty()) {
 		MessageBox(_T("Must set Write/Read sector range."), _T("Error"), MB_ICONERROR);
 		return;
 	}
 	wr_sector_min = _ttoi(tmp);
 	sector_max_ctrl.GetWindowText(tmp);
-	if (tmp.IsEmpty()) {
+	if (function_idx != 6 && tmp.IsEmpty()) {
 		MessageBox(_T("Must set Write/Read sector range."), _T("Error"), MB_ICONERROR);
 		return;
 	}
@@ -268,7 +279,7 @@ void CStorTestToolDlg::OnBnClickedRun()
 		MessageBox(_T("The start LBA must smaller than the end LBA."), _T("Error"), MB_ICONERROR);
 		return;
 	}
-	if (wr_sector_min == 0 || wr_sector_max == 0) {
+	if (function_idx != 6 && (wr_sector_min == 0 || wr_sector_max == 0)) {
 		MessageBox(_T("Write/Read sector number must be positive."), _T("Error"), MB_ICONERROR);
 		return;
 	}
