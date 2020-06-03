@@ -1212,7 +1212,7 @@ BOOL StorTest::fun_varyzone()
 				read_begin_LBA--;
 				r_sec_num++;
 			}
-			if (read_begin_LBA + r_sec_num < LBA_end - 1) {
+			if (read_begin_LBA + r_sec_num < LBA_end) {
 				r_sec_num++;
 			}
 			DWORD r_sec_len = r_sec_num * PHYSICAL_SECTOR_SIZE;
