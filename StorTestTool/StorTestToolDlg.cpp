@@ -80,7 +80,7 @@ BOOL CStorTestToolDlg::OnInitDialog()
 
 	// TODO: Add extra initialization here
 	// initial function dropdown list
-	int function_cnt = 8;
+	int function_cnt = 9;
 	for (int i = 0; i < function_cnt; i++) {
 		function_ctrl.InsertString(i, function_map[i]);
 	}
@@ -184,6 +184,25 @@ void CStorTestToolDlg::OnCbnSelchangeFunction()
 		varyzone_len_ploop_edit_ctrl.EnableWindow(FALSE);
 		varyzone_verify_all_loop_edit_ctrl.EnableWindow(FALSE);
 	}
+
+	if (function_idx == 8) {
+		LBA_start_ctrl.EnableWindow(FALSE);
+		LBA_end_ctrl.EnableWindow(FALSE);
+		sector_min_ctrl.EnableWindow(FALSE);
+		sector_max_ctrl.EnableWindow(FALSE);
+		loop_num_ctrl.EnableWindow(FALSE);
+		varyzone_len_ploop_edit_ctrl.EnableWindow(FALSE);
+		varyzone_verify_all_loop_edit_ctrl.EnableWindow(FALSE);
+	}
+	else {
+		LBA_start_ctrl.EnableWindow(TRUE);
+		LBA_end_ctrl.EnableWindow(TRUE);
+		sector_min_ctrl.EnableWindow(TRUE);
+		sector_max_ctrl.EnableWindow(TRUE);
+		loop_num_ctrl.EnableWindow(TRUE);
+		varyzone_len_ploop_edit_ctrl.EnableWindow(TRUE);
+		varyzone_verify_all_loop_edit_ctrl.EnableWindow(TRUE);
+	}
 }
 
 
@@ -210,9 +229,10 @@ void CStorTestToolDlg::OnBnClickedstopbtn()
 
 void CStorTestToolDlg::OnBnClickedRun()
 {
-	DWORD LBA_start, LBA_end, wr_sector_min, wr_sector_max;
+	DWORD LBA_start{ 0 }, LBA_end{ 0 }, wr_sector_min{ 0 }, wr_sector_max{ 0 };
 	DWORD device_idx, function_idx;
-	WORD loop_num;
+	DWORD test_len_pro_loop = 0, test_loop_per_verify_all = 0;
+	WORD loop_num{ 0 };
 	Device selected_device;
 
 	// get selected device
@@ -230,109 +250,112 @@ void CStorTestToolDlg::OnBnClickedRun()
 		return;
 	}
 
-	// initial variable
-	CString tmp;
-	LBA_start_ctrl.GetWindowText(tmp);
-	if (tmp.IsEmpty()) {
-		MessageBox(_T("Must set LBA range."), _T("Error"), MB_ICONERROR);
-		return;
-	}
-	LBA_start = _ttoi(tmp);
-	LBA_end_ctrl.GetWindowText(tmp);
-	if (tmp.IsEmpty()) {
-		MessageBox(_T("Must set LBA range."), _T("Error"), MB_ICONERROR);
-		return;
-	}
-	LBA_end = _ttoi(tmp);
-	sector_min_ctrl.GetWindowText(tmp);
-	if (function_idx != 6 && tmp.IsEmpty()) {
-		MessageBox(_T("Must set Write/Read sector range."), _T("Error"), MB_ICONERROR);
-		return;
-	}
-	wr_sector_min = _ttoi(tmp);
-	sector_max_ctrl.GetWindowText(tmp);
-	if (function_idx != 6 && tmp.IsEmpty()) {
-		MessageBox(_T("Must set Write/Read sector range."), _T("Error"), MB_ICONERROR);
-		return;
-	}
-	wr_sector_max = _ttoi(tmp);
-	loop_num_ctrl.GetWindowText(tmp);
-	if (function_idx != 5 && tmp.IsEmpty()) {
-		MessageBox(_T("Must set loop number."), _T("Error"), MB_ICONERROR);
-		return;
-	}
-	if (_ttoi(tmp) >= (1 << 16)) {
-		MessageBox(_T("The size of loop number is only 2Bytes."), _T("Error"), MB_ICONERROR);
-		return;
-	}
-	loop_num = _ttoi(tmp);
-	if (function_idx == 4) {
-		if (loop_num * 3 >= (1 << 16)) {
-			MessageBox(_T("The size of total loop number (3 times the loop number in Testmode) is only 2Bytes."), _T("Error"), MB_ICONERROR);
-			return;
-		}
-		loop_num = loop_num * 3;
-	}
-
-	// check value
-	if (LBA_start >= LBA_end) {
-		MessageBox(_T("The start LBA must smaller than the end LBA."), _T("Error"), MB_ICONERROR);
-		return;
-	}
-	if (function_idx != 6 && (wr_sector_min == 0 || wr_sector_max == 0)) {
-		MessageBox(_T("Write/Read sector number must be positive."), _T("Error"), MB_ICONERROR);
-		return;
-	}
-	if (wr_sector_min > wr_sector_max) {
-		MessageBox(_T("The minimum of Write/Read sector cannot be larger than the Maximum."), _T("Error"), MB_ICONERROR);
-		return;
-	}
-	if (LBA_end > selected_device.getCapacitySec()) {
-		tmp.Format(_T("Total number of sectors: %u"), selected_device.getCapacitySec());
-		MessageBox(tmp, _T("Error"), MB_ICONERROR);
-		return;
-	}
-	if (wr_sector_max > selected_device.getMaxTransfSec()) {
-		tmp.Format(_T("Maximum transfer number of sectors: %u"), selected_device.getMaxTransfSec());
-		MessageBox(tmp, _T("Error"), MB_ICONERROR);
-		return;
-	}
-	if (wr_sector_min > (LBA_end - LBA_start)) {
-		MessageBox(_T("The minimum of Write/Read sector is larger than the LBA range."), _T("Error"), MB_ICONERROR);
-		return;
-	}
-
-	tot_LBA_num = LBA_end - LBA_start;
-	tot_loop_num = (function_idx == 5) ? 1 : loop_num;
-
-	DWORD test_len_pro_loop = 0, test_loop_per_verify_all = 0;
-	if (function_idx == 7) {
-		loop_num++; // include a sequential b+c loop
-
-		varyzone_len_ploop_edit_ctrl.GetWindowText(tmp);
+	tot_LBA_num = 0;
+	tot_loop_num = 0;
+	if (function_idx != 8) {
+		// initial variable
+		CString tmp;
+		LBA_start_ctrl.GetWindowText(tmp);
 		if (tmp.IsEmpty()) {
-			MessageBox(_T("Must set TestLengthPerLoop."), _T("Error"), MB_ICONERROR);
+			MessageBox(_T("Must set LBA range."), _T("Error"), MB_ICONERROR);
 			return;
 		}
-		test_len_pro_loop = _ttoi(tmp);
-		varyzone_verify_all_loop_edit_ctrl.GetWindowText(tmp);
+		LBA_start = _ttoi(tmp);
+		LBA_end_ctrl.GetWindowText(tmp);
 		if (tmp.IsEmpty()) {
-			MessageBox(_T("Must set TestLoopPerVerifyAll."), _T("Error"), MB_ICONERROR);
+			MessageBox(_T("Must set LBA range."), _T("Error"), MB_ICONERROR);
 			return;
 		}
-		test_loop_per_verify_all = _ttoi(tmp);
-
-		if (test_loop_per_verify_all >= (1 << 16)) {
+		LBA_end = _ttoi(tmp);
+		sector_min_ctrl.GetWindowText(tmp);
+		if (function_idx != 6 && tmp.IsEmpty()) {
+			MessageBox(_T("Must set Write/Read sector range."), _T("Error"), MB_ICONERROR);
+			return;
+		}
+		wr_sector_min = _ttoi(tmp);
+		sector_max_ctrl.GetWindowText(tmp);
+		if (function_idx != 6 && tmp.IsEmpty()) {
+			MessageBox(_T("Must set Write/Read sector range."), _T("Error"), MB_ICONERROR);
+			return;
+		}
+		wr_sector_max = _ttoi(tmp);
+		loop_num_ctrl.GetWindowText(tmp);
+		if (function_idx != 5 && tmp.IsEmpty()) {
+			MessageBox(_T("Must set loop number."), _T("Error"), MB_ICONERROR);
+			return;
+		}
+		if (_ttoi(tmp) >= (1 << 16)) {
 			MessageBox(_T("The size of loop number is only 2Bytes."), _T("Error"), MB_ICONERROR);
 			return;
 		}
-		if (test_loop_per_verify_all == 0) {
-			MessageBox(_T("TestLoopPerVerifyAll cannot be 0."), _T("Error"), MB_ICONERROR);
+		loop_num = _ttoi(tmp);
+		if (function_idx == 4) {
+			if (loop_num * 3 >= (1 << 16)) {
+				MessageBox(_T("The size of total loop number (3 times the loop number in Testmode) is only 2Bytes."), _T("Error"), MB_ICONERROR);
+				return;
+			}
+			loop_num = loop_num * 3;
+		}
+
+		// check value
+		if (LBA_start >= LBA_end) {
+			MessageBox(_T("The start LBA must smaller than the end LBA."), _T("Error"), MB_ICONERROR);
 			return;
 		}
-		if (test_loop_per_verify_all > loop_num && loop_num != 1) {
-			MessageBox(_T("TestLoopPerVerifyAll cannot be larger than the loop number."), _T("Error"), MB_ICONERROR);
+		if (function_idx != 6 && (wr_sector_min == 0 || wr_sector_max == 0)) {
+			MessageBox(_T("Write/Read sector number must be positive."), _T("Error"), MB_ICONERROR);
 			return;
+		}
+		if (wr_sector_min > wr_sector_max) {
+			MessageBox(_T("The minimum of Write/Read sector cannot be larger than the Maximum."), _T("Error"), MB_ICONERROR);
+			return;
+		}
+		if (LBA_end > selected_device.getCapacitySec()) {
+			tmp.Format(_T("Total number of sectors: %u"), selected_device.getCapacitySec());
+			MessageBox(tmp, _T("Error"), MB_ICONERROR);
+			return;
+		}
+		if (wr_sector_max > selected_device.getMaxTransfSec()) {
+			tmp.Format(_T("Maximum transfer number of sectors: %u"), selected_device.getMaxTransfSec());
+			MessageBox(tmp, _T("Error"), MB_ICONERROR);
+			return;
+		}
+		if (wr_sector_min > (LBA_end - LBA_start)) {
+			MessageBox(_T("The minimum of Write/Read sector is larger than the LBA range."), _T("Error"), MB_ICONERROR);
+			return;
+		}
+
+		tot_LBA_num = LBA_end - LBA_start;
+		tot_loop_num = (function_idx == 5) ? 1 : loop_num;
+
+		if (function_idx == 7) {
+			loop_num++; // include a sequential b+c loop
+
+			varyzone_len_ploop_edit_ctrl.GetWindowText(tmp);
+			if (tmp.IsEmpty()) {
+				MessageBox(_T("Must set TestLengthPerLoop."), _T("Error"), MB_ICONERROR);
+				return;
+			}
+			test_len_pro_loop = _ttoi(tmp);
+			varyzone_verify_all_loop_edit_ctrl.GetWindowText(tmp);
+			if (tmp.IsEmpty()) {
+				MessageBox(_T("Must set TestLoopPerVerifyAll."), _T("Error"), MB_ICONERROR);
+				return;
+			}
+			test_loop_per_verify_all = _ttoi(tmp);
+
+			if (test_loop_per_verify_all >= (1 << 16)) {
+				MessageBox(_T("The size of loop number is only 2Bytes."), _T("Error"), MB_ICONERROR);
+				return;
+			}
+			if (test_loop_per_verify_all == 0) {
+				MessageBox(_T("TestLoopPerVerifyAll cannot be 0."), _T("Error"), MB_ICONERROR);
+				return;
+			}
+			if (test_loop_per_verify_all > loop_num && loop_num != 1) {
+				MessageBox(_T("TestLoopPerVerifyAll cannot be larger than the loop number."), _T("Error"), MB_ICONERROR);
+				return;
+			}
 		}
 	}
 

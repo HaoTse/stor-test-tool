@@ -13,7 +13,7 @@ StorTest::StorTest(Device dev, DWORD fun_idx, DWORD start, DWORD end, DWORD smin
 	DWORD varyzone_tlen, DWORD varyzone_vall) :
 	selected_device(dev), function_idx(fun_idx), LBA_start(start), LBA_end(end),
 	wr_sector_min(smin), wr_sector_max(smax), loop_num(loopn),
-	test_len_pro_loop{ varyzone_tlen }, test_loop_per_verify_all{ varyzone_vall }
+	test_len_per_loop{ varyzone_tlen }, test_loop_per_verify_all{ varyzone_vall }
 {
 	// initial progress end
 	progress_bar_end = LBA_end - LBA_start;
@@ -1106,8 +1106,8 @@ BOOL StorTest::fun_varyzone()
 	HANDLE setup_file_hand = get_file_handle(dir_path + _T("\\setup.txt"));
 	CString setup_msg;
 	DWORD bytesWritten;
-	
-	setup_msg.Format(_T("TestLengthPerLoop: %u\nTestLoopPerVerifyAll: %u\n"), test_len_pro_loop, test_loop_per_verify_all);
+
+	setup_msg.Format(_T("TestLengthPerLoop: %u\nTestLoopPerVerifyAll: %u\n"), test_len_per_loop, test_loop_per_verify_all);
 	WriteFile(
 		setup_file_hand,
 		setup_msg,
@@ -1147,7 +1147,7 @@ BOOL StorTest::fun_varyzone()
 	DWORD write_LBA;
 	for (WORD cur_loop = 1; loop_num == 1 || cur_loop < loop_num; cur_loop++) {
 		// update progress bar end to test length
-		progress_bar_end = test_len_pro_loop;
+		progress_bar_end = test_len_per_loop;
 
 		// open command log file
 		CString cmd_file_name;
@@ -1160,14 +1160,14 @@ BOOL StorTest::fun_varyzone()
 		vector<DWORD> write_LBA_record, write_len_record;
 		write_LBA = 0;
 		cur_LBA_cnt = 0;
-		while (write_LBA < test_len_pro_loop)
+		while (write_LBA < test_len_per_loop)
 		{
 			if (if_pause) continue;
 			if (if_terminate) break;
 
 			DWORD begin_LBA = begin_LBA_rng(), wr_sec_num = wr_sec_rng();
 			// check remain LBA
-			wr_sec_num = (wr_sec_num < (test_len_pro_loop - write_LBA)) ? wr_sec_num : (test_len_pro_loop - write_LBA);
+			wr_sec_num = (wr_sec_num < (test_len_per_loop - write_LBA)) ? wr_sec_num : (test_len_per_loop - write_LBA);
 			wr_sec_num = (wr_sec_num < (LBA_end - begin_LBA)) ? wr_sec_num : (LBA_end - begin_LBA);
 			DWORD wr_sec_len = wr_sec_num * PHYSICAL_SECTOR_SIZE;
 			BYTE* w_data = new BYTE[wr_sec_len];
@@ -1410,6 +1410,89 @@ BOOL StorTest::fun_varyzone()
 	return TRUE;
 }
 
+BOOL StorTest::fun_customize()
+{
+	// write setup file
+	HANDLE script_file_hand = get_file_handle(dir_path + _T("\\script.txt"));
+	DWORD bytesWritten;
+	CString msg, script_msg = _T("For loop 0\n"
+								"Write size max\n"
+								"LBA 0 ~ 242221056"
+								"Write 0 2 4 6 8 ..... blocks\n");
+
+	WriteFile(
+		script_file_hand,
+		script_msg,
+		script_msg.GetLength() * 2,
+		&bytesWritten,
+		nullptr);
+	CloseHandle(script_file_hand);
+
+	// customize
+	DWORD max_transf_len = selected_device.getMaxTransfLen();
+	for (WORD cur_loop = 1;; cur_loop++) {
+		// open command log file
+		CString cmd_file_name;
+		cmd_file_name.Format(_T("\\loop%05u_command.txt"), cur_loop);
+		cmd_file_hand = get_file_handle(dir_path + cmd_file_name);
+
+		msg.Format(_T("\tStart loop %5u customize\n"), cur_loop);
+		set_log_msg(msg);
+
+		DWORD cur_LBA = 0;
+		cur_LBA_cnt = 0;
+		while (cur_LBA < 242221056) {
+			if (if_pause) continue;
+			if (if_terminate) break;
+
+			if (cur_LBA % 196608 == 0 && (cur_LBA / 196608) % 2 == 1) {
+				cur_LBA += 196608;
+				continue;
+			}
+
+			DWORD wr_sec_num = selected_device.getMaxTransfSec();
+			DWORD wr_sec_len = wr_sec_num * PHYSICAL_SECTOR_SIZE;
+			BYTE* w_data = new BYTE[wr_sec_len];
+
+			// get LBA pattern
+			for (DWORD i = 0; i < wr_sec_num; i++) {
+				get_LBA_pattern(w_data + i * PHYSICAL_SECTOR_SIZE, cur_LBA + i, cur_loop);
+			}
+
+			// wrtie LBA
+			QueryPerformanceCounter(&nBeginTime); // timer begin
+			ULONGLONG cur_LBA_offset = (ULONGLONG)cur_LBA * PHYSICAL_SECTOR_SIZE;
+			if (!SCSISectorIO(hDevice, max_transf_len, cur_LBA_offset, w_data, wr_sec_len, TRUE)) {
+				TRACE(_T("\n[Error] Write LBA failed. Error Code = %u.\n"), GetLastError());
+				delete[] w_data;
+				write_log_file(); // write cmd and error log, ehance the msg buffer is empty
+				CloseHandle(cmd_file_hand);
+				set_terminate();
+				close_hDevice();
+				throw std::runtime_error("Write LBA failed.");
+			}
+			QueryPerformanceCounter(&nEndTime); // timer end
+			cmd_time = ((double)(nEndTime.QuadPart - nBeginTime.QuadPart) * 1000) / (double)nFreq.QuadPart;
+			msg.Format(_T("Loop %5u Write LBA: %10u~%10u (size: %4u) Elapsed %8.3f ms\n"),
+				cur_loop, cur_LBA, cur_LBA + wr_sec_num, wr_sec_num, cmd_time);
+			set_cmd_msg(msg);
+
+			delete[] w_data;
+			cur_LBA += wr_sec_num;
+			cur_LBA_cnt += wr_sec_num;
+		}
+
+		write_log_file(); // write cmd and error log, ehance the msg buffer is empty
+		CloseHandle(cmd_file_hand);
+
+		if (if_terminate) break;
+		cur_loop_cnt++;
+	}
+
+
+	return TRUE;
+}
+
 BOOL StorTest::run()
 {
 	CString msg;
@@ -1471,6 +1554,10 @@ BOOL StorTest::run()
 		set_log_msg(CString(_T("Start Varyzone\n")));
 		rtn = fun_varyzone();
 		break;
+	case 8:
+		set_log_msg(CString(_T("Start Customize\n")));
+		rtn = fun_customize();
+		break;
 	default:
 		throw std::runtime_error("Function setup error.");
 	}
@@ -1481,9 +1568,10 @@ BOOL StorTest::run()
 
 BOOL StorTest::open_log_dir()
 {
-	CString function_folder_map[8] = { _T("Seq(wr+r)"), _T("Seq(w+r)"),
+	CString function_folder_map[9] = { _T("Seq(wr+r)"), _T("Seq(w+r)"),
 								_T("Rev(wr+r)"), _T("Rev(w+r)"),
-								_T("Testmode"), _T("Onewrite"), _T("Verify"), _T("Varyzone") };
+								_T("Testmode"), _T("Onewrite"), _T("Verify"), _T("Varyzone"),
+								_T("Customize")};
 
 	dir_path.Format(_T("D:\\stortest_log\\%s_LBA_%010u_%010u_wr_%04u_%04u_loop_%05u"),
 		function_folder_map[function_idx], LBA_start, LBA_end, wr_sector_min, wr_sector_max, loop_num);

@@ -22,7 +22,7 @@ private:
 	// setup parameters
 	Device selected_device;
 	DWORD function_idx{ 0 }, LBA_start{ 0 }, LBA_end{ 0 }, wr_sector_min{ 0 }, wr_sector_max{ 0 };
-	DWORD test_len_pro_loop{ 0 }, test_loop_per_verify_all{ 0 };
+	DWORD test_len_per_loop{ 0 }, test_loop_per_verify_all{ 0 };
 	WORD loop_num{ 0 };
 	HANDLE hDevice{ NULL };
 
@@ -77,6 +77,7 @@ private:
 	BOOL fun_onewrite();
 	BOOL fun_verify();
 	BOOL fun_varyzone();
+	BOOL fun_customize();
 
 public:
 	StorTest(Device dev, DWORD fun_idx, DWORD start, DWORD end, DWORD smin, DWORD smax, WORD loopn,
